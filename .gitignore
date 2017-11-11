@@ -1,4 +1,5 @@
 .vscode/
+build/
 CMakeCache.txt
 CMakeFiles/
 Makefile
