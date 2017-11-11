@@ -2,6 +2,7 @@
 
 #include "utility.hpp"
 #include "typelist.hpp"
+#include <type_traits>
 #include <exception>
 #include <iostream>
 
@@ -42,13 +43,34 @@ struct variant
 	static constexpr size_t invalid_index = sizeof...(Ts) + 1; // one past the last type
 
     variant()
-		: held_(invalid_index)
+		: union_(nullptr), held_(invalid_index)
     {}
     template <typename I>
-    variant(I const&& Init)
-        : union_(new typename tl_type_at< tl_index_of<I, types>::index, types >::type(std::forward<I>(Init)))
-        , held_(tl_index_of<I, types>::index)
-	{}
+    variant(I&& Init)
+	{
+		if constexpr(tl_has_type<I, types>::value)
+		{
+			if constexpr(std::is_reference<I>::value)
+			{
+				union_ = new std::remove_reference_t<I>*(&Init);
+				held_ = tl_index_of<I, types>::index;
+			}
+			else
+			{
+				union_ = new I(Init);
+				held_ = tl_index_of<I, types>::index;
+			}
+		}
+		else if constexpr(tl_has_conversion<I, types>::value)
+		{
+			union_ = new typename tl_find_conversion<I, types>::type(Init);
+			held_ = tl_index_of<typename tl_find_conversion<I, types>::type, types>::index;
+		}
+		else
+		{
+			static_assert(tl_has_type<I, types>::value || tl_has_conversion<I, types>::value, "could not find suitable conversion in variant assignment");
+		}
+	}
 	~variant()
 	{ if(!empty()) deleter_type::release(held_, union_); }
 
@@ -75,13 +97,20 @@ struct variant
 		{
 			if(tl_index_of<P, types>::index == held_) // dont destroy union_ if unneccesary
 			{
-				*static_cast<P*>(union_) = rhs;
-				return *this;
+				if constexpr(std::is_reference<P>::value)
+				{
+					*static_cast<std::remove_reference_t<P>**>(union_) = &rhs;
+				}
+				else
+				{
+					*static_cast<P*>(union_) = rhs;
+					return *this;
+				}
 			}
 			clear();
 			if constexpr(std::is_reference<P>::value)
 			{
-				union_ = new uncvref_t<P>*(&rhs);
+				union_ = new std::remove_reference_t<P>*(&rhs);
 				held_ = tl_index_of<P, types>::index;
 			}
 			else
@@ -111,7 +140,8 @@ struct variant
 			if(held_ == tl_index_of<G, types>::index)
 			{
 				if constexpr(std::is_reference<G>::value)
-					return **static_cast<uncvref_t<G>**>(union_);
+					//return **static_cast<uncvref_t<G>**>(union_);
+					return **static_cast<std::remove_reference_t<G>**>(union_);
 				else
 					return *static_cast<G*>(union_);
 			}
@@ -126,7 +156,7 @@ struct variant
 	template <typename G>
     const G& get() const
     {
-		/*if(!empty())
+		if(!empty())
 		{
 			if(held_ == tl_index_of<G, types>::index)
 			{
@@ -140,8 +170,7 @@ struct variant
 				
 		}
 		else
-			throw bad_variant_access("variant is empty");*/
-		return (volatile G&) get<G>();
+			throw bad_variant_access("variant is empty");
 	}
 private:
     void* union_;

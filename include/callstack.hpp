@@ -1,10 +1,10 @@
-#ifdef TRACE_CALLS
-
-namespace debug
-{
-
+#ifdef USING_CALLSTACK
 #include <string>
 #include <iostream>
+
+
+namespace utility
+{
 using std::string;
 
 string operator*(unsigned count, const string& str)
@@ -17,6 +17,7 @@ string operator*(unsigned count, const string& str)
     return result;
 }
 
+template <unsigned U>
 struct trace
 {
     static size_t depth;
@@ -48,21 +49,23 @@ struct trace
             std::cout << pretty << std::endl;
     }
 };
-size_t trace::depth = 0;
-string trace::pretty = "";
+template <unsigned U>
+size_t trace<U>::depth = 0;
+template <unsigned U>
+string trace<U>::pretty = "";
 
 }
 
-#define TRACE0() auto _scope_trace = debug::trace(__PRETTY_FUNCTION__)
-#define TRACE1(id) auto _scope_trace = debug::trace(#id)
-#define GET_TRACE_MACRO(_1, MACRO, ...) MACRO
+#define TRACE0(channel) auto _scope_trace = utility::trace<channel>(__PRETTY_FUNCTION__)
+#define TRACE1(channel, signature) auto _scope_trace = utility::trace<channel>(signature)
+#define GET_TRACE_MACRO(_1, _2, MACRO, ...) MACRO
+
 #define TRACE(...) GET_TRACE_MACRO(__VA_ARGS__, TRACE1, TRACE0)(__VA_ARGS__)
+#define MESSAGE(channel, message) utility::trace<channel>::message(message)
 
 #else
 
-#define TRACE0() 
-#define TRACE1(id) 
-#define GET_TRACE_MACRO(_1, MACRO, ...) MACRO
-#define TRACE(...) GET_TRACE_MACRO(__VA_ARGS__, TRACE1, TRACE0)(__VA_ARGS__) 
+#define DO_NOTHING() 
+#define TRACE(...) DO_NOTHING()
 
 #endif

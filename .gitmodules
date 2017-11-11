@@ -1,0 +1,3 @@
+[submodule "type_safe"]
+	path = type_safe
+	url = http://github.com/foonathan/type_safe
