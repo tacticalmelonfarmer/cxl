@@ -1,54 +1,51 @@
-#ifndef VARIANT_HPP_GAURD
-#define VARIANT_HPP_GAURD
+#ifndef STACK_VARIANT_HPP_GAURD
+#define STACK_VARIANT_HPP_GAURD
 
 #include "typelist.hpp"
 #include "utility.hpp"
-#include <exception>
+#include "variant.hpp"
 #include <type_traits>
 
 namespace utility {
 
-struct bad_variant_access : std::runtime_error
+template<typename... Ts>
+struct variant_stack_allocator
 {
-  bad_variant_access(const char* what)
-    : std::runtime_error(what)
+  static_assert(sizeof(char) == 1, "your compiler is breaking my code");
+  static constexpr size_t size = ct::biggest_type_v<Ts...>;
+
+  template<typename T>
+  T& access()
   {
+    static_assert(sizeof(T) <= size, "cannot convert data_ to type T it is too big");
+    return *reinterpret_cast<T*>(&data_);
   }
-};
 
-template<typename T>
-void
-delete_type(void* HeldPtr)
-{
-  if
-    constexpr(std::is_lvalue_reference<T>::value) delete static_cast<std::remove_reference_t<T>*>(HeldPtr);
-  else
-    delete static_cast<T*>(HeldPtr);
-}
+  template<typename T>
+  const T& access() const
+  {
+    static_assert(sizeof(T) <= size, "cannot convert data_ to type T it is too big");
+    return *reinterpret_cast<const T*>(&data_);
+  }
 
-template<typename T, typename... Ts>
-struct variant_deleter
-{
-  static constexpr auto size = sizeof...(Ts) + 1;
-  static constexpr void (*deleters[size])(void*) = { &delete_type<T>, &delete_type<Ts>... };
-
-  static inline void release(size_t HeldIndex, void* HeldPtr) { deleters[HeldIndex](HeldPtr); }
+private:
+  char data_[size];
 };
 
 template<typename T, typename... Ts>
-struct variant
+struct stack_variant
 {
   typedef typelist<T, Ts...> types;
-  typedef variant_deleter<T, Ts...> deleter_type;
+  typedef variant_stack_allocator<T, Ts...> value_type;
   static constexpr size_t invalid_index = sizeof...(Ts) + 1; // one past the last type
 
-  variant()
-    : union_(nullptr)
+  stack_variant()
+    : union_(value_type())
     , held_(invalid_index)
   {
   }
   template<typename I>
-  variant(I&& Init)
+  stack_variant(I&& Init)
   {
     if
       constexpr(tl_has_type<I, types>::value)
@@ -56,18 +53,18 @@ struct variant
         if
           constexpr(std::is_lvalue_reference<I>::value)
           {
-            union_ = new std::remove_reference_t<I>*(&Init);
+            union_.template access<std::remove_reference_t<I>*>() = &Init;
             held_ = tl_index_of<I, types>::index;
           }
         else {
-          union_ = new I(std::move(Init));
+          union_.template access<I>() = std::move(Init);
           held_ = tl_index_of<I, types>::index;
         }
       }
     else if
       constexpr(tl_has_conversion<I, types>::value)
       {
-        union_ = new typename tl_find_conversion<I, types>::type(std::move(Init));
+        union_.template access<typename tl_find_conversion<I, types>::type>() = std::move(Init);
         held_ = tl_index_of<typename tl_find_conversion<I, types>::type, types>::index;
       }
     else {
@@ -75,18 +72,13 @@ struct variant
                     "could not find suitable conversion in variant assignment");
     }
   }
-  ~variant()
-  {
-    if (!empty())
-      deleter_type::release(held_, union_);
-  }
 
   bool empty() const { return held_ == invalid_index; }
 
   void clear()
   {
     if (!empty()) {
-      deleter_type::release(held_, union_);
+      union_ = value_type();
       held_ = invalid_index;
     }
   }
@@ -98,7 +90,7 @@ struct variant
   }
 
   template<typename P>
-  variant<T, Ts...>& operator=(P&& rhs)
+  stack_variant<T, Ts...>& operator=(P&& rhs)
   {
     if
       constexpr(tl_has_type<P, types>::value)
@@ -106,21 +98,24 @@ struct variant
         if (tl_index_of<P, types>::index == held_) // dont destroy union_ if unneccesary
         {
           if
-            constexpr(std::is_lvalue_reference<P>::value) { *static_cast<std::remove_reference_t<P>**>(union_) = &rhs; }
+            constexpr(std::is_lvalue_reference<P>::value)
+            {
+              union_.template access<std::remove_reference_t<P>*>() = &rhs;
+            }
           else {
-            *static_cast<P*>(union_) = std::move(rhs);
-            return *this;
+            union_.template access<P>() = std::move(rhs);
           }
+          return *this;
         }
         clear();
         if
           constexpr(std::is_lvalue_reference<P>::value)
           {
-            union_ = new std::remove_reference_t<P>*(&rhs);
+            union_.template access<std::remove_reference_t<P>*>() = &rhs;
             held_ = tl_index_of<P, types>::index;
           }
         else {
-          union_ = new P(std::move(rhs));
+          union_.template access<P>() = std::move(rhs);
           held_ = tl_index_of<P, types>::index;
         }
       }
@@ -128,7 +123,7 @@ struct variant
       constexpr(tl_has_conversion<P, types>::value)
       {
         clear();
-        union_ = new typename tl_find_conversion<P, types>::type(std::move(rhs));
+        union_.template access<typename tl_find_conversion<P, types>::type>() = std::move(rhs);
         held_ = tl_index_of<typename tl_find_conversion<P, types>::type, types>::index;
       }
     else {
@@ -144,9 +139,13 @@ struct variant
     if (!empty()) {
       if (held_ == tl_index_of<G, types>::index) {
         if
-          constexpr(std::is_lvalue_reference<G>::value) return **static_cast<std::remove_reference_t<G>**>(union_);
-        else
-          return *static_cast<G*>(union_);
+          constexpr(std::is_lvalue_reference<G>::value)
+          {
+            return *union_.template access<std::remove_reference_t<G>*>();
+          }
+        else {
+          return union_.template access<G>();
+        }
       } else
         throw bad_variant_access("variant does not hold the requested type");
 
@@ -160,9 +159,13 @@ struct variant
     if (!empty()) {
       if (held_ == tl_index_of<G, types>::index) {
         if
-          constexpr(std::is_lvalue_reference<G>::value) return **static_cast<std::remove_reference_t<G>**>(union_);
-        else
-          return *static_cast<G*>(union_);
+          constexpr(std::is_lvalue_reference<G>::value)
+          {
+            return *union_.template access<std::remove_reference_t<G>*>();
+          }
+        else {
+          return union_.template access<G>();
+        }
       } else
         throw bad_variant_access("variant does not hold the requested type");
 
@@ -171,7 +174,7 @@ struct variant
   }
 
 private:
-  void* union_;
+  value_type union_;
   size_t held_;
 };
 }
