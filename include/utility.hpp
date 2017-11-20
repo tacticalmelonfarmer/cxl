@@ -71,7 +71,7 @@ template<size_t Index, size_t End, size_t ResultSize, typename ResultType, bool 
 struct ct_biggest_type_assist;
 
 template<size_t Index, size_t End, size_t ResultSize, typename ResultType, typename T, typename... Ts>
-struct ct_biggest_type_assist<Index, End, ResultSize, ResultType, true, T, Ts...>
+struct ct_biggest_type_assist<Index, End, ResultSize, ResultType, true, T, Ts...> // end point
 {
   static constexpr size_t this_size = sizeof(T);
   static constexpr size_t size = (this_size > ResultSize) ? this_size : ResultSize;
@@ -81,23 +81,30 @@ struct ct_biggest_type_assist<Index, End, ResultSize, ResultType, true, T, Ts...
 template<size_t Index, size_t End, size_t ResultSize, typename ResultType, typename T, typename... Ts>
 struct ct_biggest_type_assist<Index, End, ResultSize, ResultType, false, T, Ts...>
 {
+  typedef ct_biggest_type_assist<Index + 1, End, ResultSize, ResultType, (Index + 1 == End), Ts...> next;
   static constexpr size_t this_size = sizeof(T);
   static constexpr size_t size =
-    (this_size > ct_biggest_type_assist<Index + 1, End, ResultSize, ResultType, (Index + 1 == End), Ts...>::this_size)
+    (this_size > next::this_size)
       ?
       /*then*/ ct_biggest_type_assist<Index + 1, End, this_size, T, (Index + 1 == End), Ts...>::size
       :
-      /*else*/ ct_biggest_type_assist<Index + 1, End, ResultSize, ResultType, (Index + 1 == End), Ts...>::size;
-  typedef typename ct_if_else<
-    (this_size > ct_biggest_type_assist<Index + 1, End, ResultSize, ResultType, (Index + 1 == End), Ts...>::this_size),
-    /*then*/
-    typename ct_biggest_type_assist<Index + 1, End, this_size, T, (Index + 1 == End), Ts...>::type,
-    /*else*/ typename ct_biggest_type_assist<Index + 1, End, ResultSize, ResultType, (Index + 1 == End), Ts...>::type>::
-    type type;
+      /*else*/ next::size;
+  typedef
+    typename ct_if_else<(this_size > next::this_size),
+                        /*then*/
+                        typename ct_biggest_type_assist<Index + 1, End, this_size, T, (Index + 1 == End), Ts...>::type,
+                        /*else*/ typename next::type>::type type;
 };
 
 template<typename... Ts>
-struct ct_biggest_type;
+struct ct_biggest_type; // entry point -> ct_biggest_type_assist
+
+template<>
+struct ct_biggest_type<>
+{
+  constexpr static size_t size = 0;
+  typedef void type;
+};
 
 template<typename T>
 struct ct_biggest_type<T>
@@ -244,14 +251,14 @@ using make_index_range_t = typename ct_make_index_range<BeginIndex, EndIndex>::t
 }
 
 template<typename F, template<class...> typename T, size_t... Indices, class... TL>
-decltype(auto)
+constexpr decltype(auto)
 apply_impl(F&& functional, T<TL...>&& tuple, ct_index_range<Indices...>&& indices)
 {
   return functional(std::get<Indices>(tuple)...);
 }
 
 template<typename F, template<class...> typename T, class T0, class... TL>
-decltype(auto)
+constexpr decltype(auto)
 apply(F functional, T<T0, TL...> tuple)
 {
   return apply_impl(std::forward<F>(functional),
@@ -260,11 +267,10 @@ apply(F functional, T<T0, TL...> tuple)
 }
 
 template<typename F, template<class...> typename T>
-decltype(auto)
+constexpr decltype(auto)
 apply(F functional, T<> tuple)
 {
   return std::forward<F>(functional)();
 }
 }
-
 #endif
