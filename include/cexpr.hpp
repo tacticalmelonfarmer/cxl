@@ -63,10 +63,12 @@ template<typename T, size_t ArrSize>
 struct carray
 {
   typedef T value_type;
-  typedef citerator<carray<T, ArrSize>, 0, ArrSize - 1> iterator_type;
 
   const T data[ArrSize];
 
+  constexpr carray(const T Data)
+    : data{ Data }
+  {}
   template<typename T0, typename... Ts>
   constexpr carray(T0 Data0, Ts... Data)
     : data{ Data0, Data... }
@@ -82,8 +84,6 @@ struct carray
 
   constexpr T operator[](const size_t Index) const { return data[Index]; }
   constexpr size_t size() const { return ArrSize; }
-  constexpr auto begin() const { return iterator_type(*this, 0); }
-  constexpr auto end() const { return iterator_type(*this, ArrSize - 1); }
 };
 
 template<typename T, size_t Size>
@@ -91,6 +91,9 @@ carray(const T (&Data)[Size])->carray<T, Size>;
 
 template<typename T0, typename... Ts>
 carray(T0 Data0, Ts... Data)->carray<T0, sizeof...(Ts) + 1>;
+
+template<typename T>
+carray(const T)->carray<T, 1>;
 
 ///////////////////////    cstring     ///////////////////////////////////
 
@@ -111,7 +114,6 @@ template<size_t StrSize>
 struct cstring
 {
   typedef char value_type;
-  typedef citerator<cstring<StrSize>, 0, StrSize - 1> iterator_type;
 
   const char data[StrSize];
 
@@ -132,8 +134,6 @@ struct cstring
 
   constexpr char operator[](const size_t Index) const { return data[Index]; }
   constexpr size_t size() const { return StrSize; }
-  constexpr auto begin() const { return iterator_type(*this, 0); }
-  constexpr auto end() const { return iterator_type(*this, StrSize - 1); }
 
   template<size_t... Indices>
   constexpr auto substr_helper(const index_range<Indices...>) const
@@ -457,24 +457,32 @@ struct seq_parsers
     , parsers{ P0(), Ps()... }
   {}
 
-  template<size_t Index, size_t Bump0, size_t... Bumps, size_t Size>
-  constexpr size_t parse_impl(const cstring<Size> Subject, const size_t Result) const
+  template<size_t Index, size_t Size, size_t... Sizes>
+  constexpr size_t parse_impl(const size_t Result, const cstring<Size> Subject, const cstring<Sizes>... Next) const
   {
-    return 0;
+    auto current_parser = parsers.template get<Index>();
+    size_t matched = current_parser.parse(Subject);
+    if (matched) {
+      if (sizeof...(Next) == 0)
+        return Result + Size;
+      else if constexpr (sizeof...(Next) > 0)
+        return parse_impl<Index + 1>(Result + Size, Next...);
+    } else
+      return 0;
   }
 
-  template<size_t Size>
-  constexpr size_t parse(const cstring<Size> Subject) const
+  template<size_t Size, size_t... Sizes>
+  constexpr size_t parse(const cstring<Size> Subject, const cstring<Sizes>... Next) const
   {
     auto current_parser = parsers.template get<0>();
     size_t matched = current_parser.parse(Subject);
     if (matched) {
-      if (sizeof...(Ps) == 0)
-        return matched;
+      if constexpr (sizeof...(Ps) == 0)
+        return Size;
       else
-        return parse_impl<1>();
-    }
-    return 0;
+        return parse_impl<1>(matched, Next...);
+    } else
+      return 0;
   }
 };
 
