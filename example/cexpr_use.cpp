@@ -1,22 +1,19 @@
 #include <assert.h>
-#include <cexpr.hpp>
-
-using namespace utility::cexpr;
+#include <cstring.hpp>
+#include <iostream>
 
 int
 main()
 {
-  constexpr cstring str1 = "hi";
-  constexpr cstring str2 = "hello";
-  constexpr cstring str3 = "yo";
+  using namespace utility::cexpr::literals;
+  constexpr auto str1 = "hello"_cs;
+  std::cout << str1.data << std::endl;
 
-  constexpr auto parse1 = one_of_strings(str1, str2);
-  constexpr auto parse2 = one_of_strings(str1, str3);
-  constexpr auto one_of_p = one_of_parsers(parse1, parse2);
+  constexpr auto str2 = str1 + ", world!"_cs;
+  std::cout << str2.data << std::endl;
 
-  constexpr auto seqstr = seq_strings(str1, str3).parse(cstring("hiyo"));
+  constexpr auto sub1 = utility::cexpr::substr<0, 2>(str1);
+  std::cout << sub1.data << std::endl;
 
-  constexpr auto seq_p = seq_parsers(one_of_p, one_of_p).parse(str1, str2);
-
-  return one_of_p.parse(cstring("yo"));
+  return 0;
 }

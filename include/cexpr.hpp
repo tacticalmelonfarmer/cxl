@@ -10,51 +10,87 @@ using namespace ct;
 
 ///////////////////////    citerator     ///////////////////////////////////
 
-template<typename Container, size_t Begin, size_t End>
-struct citerator // NOTE: Iterator Range is inclusive ie. [Begin, ..., End] as opposed to [Begin, ...], End
+template<size_t Index, typename Container, size_t Begin, size_t End>
+struct citerator
 {
   typedef Container container_type;
+  typedef typename container_type::value_type value_type;
 
-  const Container data;
-  const size_t ref_index;
+  const container_type container;
 
-  constexpr citerator(const Container InitContainer, const size_t Index)
-    : data(InitContainer)
-    , ref_index(Index)
+  constexpr citerator(const Container Init)
+    : container(Init)
   {}
 
-  constexpr typename Container::value_type operator*() const { return data.data[ref_index]; }
-  constexpr size_t index() const { return ref_index; }
-  constexpr auto operator++() const { return citerator<Container, End, Begin>(data, ref_index + 1); }
-  constexpr auto operator--() const { return citerator<Container, End, Begin>(data, ref_index - 1); }
+  constexpr auto operator*() const { return container[Index]; }
+  constexpr size_t index() const { return Index; }
+  constexpr auto operator++() const { return citerator<Index + 1, Container, End, Begin>(container); }
+  constexpr auto operator--() const { return citerator<Index - 1, Container, End, Begin>(container); }
+
+  template<template<size_t> typename T, size_t... Indices>
+  constexpr auto until_helper(const index_range<Indices...>) const
+  {
+    return T<sizeof...(Indices)>{ { container[Indices]... } };
+  }
+  template<template<size_t> typename T,                       // container type == cstring<...>
+           template<size_t, typename, auto...> typename Iter, // deduced
+           size_t UntilIndex,                                 // deduced
+           auto... __unused>                                  // deduced
+  constexpr auto
+  until(const Iter<UntilIndex, Container, __unused...> Until) const
+  {
+    return until_helper<T>(make_index_range_t<Index, UntilIndex>());
+  }
+  template<template<typename, size_t> typename T, size_t... Indices>
+  constexpr auto until_helper(const index_range<Indices...>) const
+  {
+    return T<value_type, sizeof...(Indices)>{ { container[Indices]... } };
+  }
+  template<template<typename, size_t> typename T,             // container type == carray<...>
+           template<size_t, typename, auto...> typename Iter, // deduced
+           size_t UntilIndex,                                 // deduced
+           auto... __unused>                                  // deduced
+  constexpr auto
+  until(const Iter<UntilIndex, Container, __unused...> Until) const
+  {
+    return until_helper<T>(make_index_range_t<Index, UntilIndex>());
+  }
 };
 
-template<typename Container, auto Begin, auto End>
+template<template<size_t> typename T, // cstring
+         template<size_t, typename, size_t, size_t> typename Iter,
+         size_t From,
+         size_t To,
+         typename Container,
+         size_t Begin,
+         size_t End>
 constexpr auto
-operator+(const citerator<Container, Begin, End> L, const size_t R)
+from_iters(const Iter<From, Container, Begin, End> BeginIter, const Iter<To, Container, Begin, End> EndIter)
 {
-  return citerator<Container, Begin, End>(L.data, L.index() + R);
+  return BeginIter.template until<T>(EndIter);
 }
 
-template<typename Container, auto Begin, auto End>
+template<template<typename, size_t> typename T, // carray
+         template<size_t, typename, size_t, size_t> typename Iter,
+         size_t From,
+         size_t To,
+         typename Container,
+         size_t Begin,
+         size_t End>
 constexpr auto
-operator+(const size_t L, const citerator<Container, Begin, End> R)
+from_iters(const Iter<From, Container, Begin, End> BeginIter, const Iter<To, Container, Begin, End> EndIter)
 {
-  return citerator<Container, Begin, End>(R.data, R.index() + L);
+  return BeginIter.template until<T>(EndIter);
 }
 
-template<typename Container, auto Begin, auto End>
+template<typename T, typename U, typename V, typename W>
 constexpr auto
-operator-(const citerator<Container, Begin, End> L, const size_t R)
+iter_compare(const T Begin1, const U End1, const V Begin2, const W End2)
 {
-  return citerator<Container, Begin, End>(L.data, L.index() - R);
-}
-
-template<typename Container, auto Begin, auto End>
-constexpr auto
-operator-(const size_t L, const citerator<Container, Begin, End> R)
-{
-  return citerator<Container, Begin, End>(R.data, R.index() - L);
+  if (*Begin1 == *Begin2)
+    return iter_compare(++Begin1, End1, ++Begin2, End2);
+  else
+    return Begin1;
 }
 
 ///////////////////////    carray     ///////////////////////////////////
@@ -134,6 +170,8 @@ struct cstring
 
   constexpr char operator[](const size_t Index) const { return data[Index]; }
   constexpr size_t size() const { return StrSize; }
+  constexpr auto begin() const { return citerator<0, cstring<StrSize>, 0, StrSize - 1>(*this); }
+  constexpr auto end() const { return citerator<StrSize - 1, cstring<StrSize>, 0, StrSize - 1>(*this); }
 
   template<size_t... Indices>
   constexpr auto substr_helper(const index_range<Indices...>) const
@@ -344,6 +382,20 @@ struct one_of_strings
       return parse_impl<1, Ts...>(Subject);
     else
       return 0;
+  }
+
+  template<template<size_t, typename, size_t, size_t> typename Iter,
+           size_t From,
+           size_t To,
+           typename T,
+           size_t __unused1,
+           size_t __unused2>
+  constexpr auto iter_parse(const Iter<From, T, __unused1, __unused2> BeginIter,
+                            const Iter<To, T, __unused1, __unused2> EndIter) const
+  {
+    auto current_target = targets.template get<0>();
+    auto matched = iter_compare(BeginIter, EndIter, current_target.begin(), current_target.end());
+    return matched;
   }
 };
 

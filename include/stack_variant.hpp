@@ -3,7 +3,6 @@
 
 #include "typelist.hpp"
 #include "utility.hpp"
-#include "variant.hpp"
 #include <type_traits>
 
 namespace utility {
@@ -35,6 +34,13 @@ private:
 template<typename T, typename... Ts>
 struct stack_variant
 {
+  struct bad_variant_access : std::runtime_error
+  {
+    bad_variant_access(const char* what)
+      : std::runtime_error(what)
+    {}
+  };
+
   typedef typelist<T, Ts...> types;
   typedef variant_stack_allocator<T, Ts...> value_type;
   static constexpr size_t invalid_index = sizeof...(Ts) + 1; // one past the last type
@@ -42,32 +48,22 @@ struct stack_variant
   stack_variant()
     : union_(value_type())
     , held_(invalid_index)
-  {
-  }
+  {}
   template<typename I>
   stack_variant(I&& Init)
   {
-    if
-      constexpr(tl_has_type<I, types>::value)
-      {
-        if
-          constexpr(std::is_lvalue_reference<I>::value)
-          {
-            union_.template access<std::remove_reference_t<I>*>() = &Init;
-            held_ = tl_index_of<I, types>::index;
-          }
-        else {
-          union_.template access<I>() = std::move(Init);
-          held_ = tl_index_of<I, types>::index;
-        }
+    if constexpr (tl_has_type<I, types>::value) {
+      if constexpr (std::is_lvalue_reference<I>::value) {
+        union_.template access<std::remove_reference_t<I>*>() = &Init;
+        held_ = tl_index_of<I, types>::index;
+      } else {
+        union_.template access<I>() = Init;
+        held_ = tl_index_of<I, types>::index;
       }
-    else if
-      constexpr(tl_has_conversion<I, types>::value)
-      {
-        union_.template access<typename tl_find_conversion<I, types>::type>() = std::move(Init);
-        held_ = tl_index_of<typename tl_find_conversion<I, types>::type, types>::index;
-      }
-    else {
+    } else if constexpr (tl_has_conversion<I, types>::value) {
+      union_.template access<typename tl_find_conversion<I, types>::type>() = Init;
+      held_ = tl_index_of<typename tl_find_conversion<I, types>::type, types>::index;
+    } else {
       static_assert(tl_has_type<I, types>::value || tl_has_conversion<I, types>::value,
                     "could not find suitable conversion in variant assignment");
     }
@@ -92,41 +88,29 @@ struct stack_variant
   template<typename P>
   stack_variant<T, Ts...>& operator=(P&& rhs)
   {
-    if
-      constexpr(tl_has_type<P, types>::value)
+    if constexpr (tl_has_type<P, types>::value) {
+      if (tl_index_of<P, types>::index == held_) // dont destroy union_ if unneccesary
       {
-        if (tl_index_of<P, types>::index == held_) // dont destroy union_ if unneccesary
-        {
-          if
-            constexpr(std::is_lvalue_reference<P>::value)
-            {
-              union_.template access<std::remove_reference_t<P>*>() = &rhs;
-            }
-          else {
-            union_.template access<P>() = std::move(rhs);
-          }
-          return *this;
+        if constexpr (std::is_lvalue_reference<P>::value) {
+          union_.template access<std::remove_reference_t<P>*>() = &rhs;
+        } else {
+          union_.template access<P>() = rhs;
         }
-        clear();
-        if
-          constexpr(std::is_lvalue_reference<P>::value)
-          {
-            union_.template access<std::remove_reference_t<P>*>() = &rhs;
-            held_ = tl_index_of<P, types>::index;
-          }
-        else {
-          union_.template access<P>() = std::move(rhs);
-          held_ = tl_index_of<P, types>::index;
-        }
+        return *this;
       }
-    else if
-      constexpr(tl_has_conversion<P, types>::value)
-      {
-        clear();
-        union_.template access<typename tl_find_conversion<P, types>::type>() = std::move(rhs);
-        held_ = tl_index_of<typename tl_find_conversion<P, types>::type, types>::index;
+      clear();
+      if constexpr (std::is_lvalue_reference<P>::value) {
+        union_.template access<std::remove_reference_t<P>*>() = &rhs;
+        held_ = tl_index_of<P, types>::index;
+      } else {
+        union_.template access<P>() = rhs;
+        held_ = tl_index_of<P, types>::index;
       }
-    else {
+    } else if constexpr (tl_has_conversion<P, types>::value) {
+      clear();
+      union_.template access<typename tl_find_conversion<P, types>::type>() = rhs;
+      held_ = tl_index_of<typename tl_find_conversion<P, types>::type, types>::index;
+    } else {
       static_assert(tl_has_type<P, types>::value || tl_has_conversion<P, types>::value,
                     "could not find suitable conversion in variant assignment");
     }
@@ -138,12 +122,9 @@ struct stack_variant
   {
     if (!empty()) {
       if (held_ == tl_index_of<G, types>::index) {
-        if
-          constexpr(std::is_lvalue_reference<G>::value)
-          {
-            return *union_.template access<std::remove_reference_t<G>*>();
-          }
-        else {
+        if constexpr (std::is_lvalue_reference<G>::value) {
+          return *union_.template access<std::remove_reference_t<G>*>();
+        } else {
           return union_.template access<G>();
         }
       } else
@@ -158,12 +139,9 @@ struct stack_variant
   {
     if (!empty()) {
       if (held_ == tl_index_of<G, types>::index) {
-        if
-          constexpr(std::is_lvalue_reference<G>::value)
-          {
-            return *union_.template access<std::remove_reference_t<G>*>();
-          }
-        else {
+        if constexpr (std::is_lvalue_reference<G>::value) {
+          return *union_.template access<std::remove_reference_t<G>*>();
+        } else {
           return union_.template access<G>();
         }
       } else
