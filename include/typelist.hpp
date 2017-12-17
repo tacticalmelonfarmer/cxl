@@ -5,11 +5,46 @@
 namespace utility {
 
 template<typename... Ts>
-struct typelist
+struct typelist;
+
+template<>
+struct typelist<>
 {
   enum
   {
-    size = sizeof...(Ts)
+    size = 0
+  };
+};
+
+template<typename T>
+struct typelist<T>
+{
+  typedef std::tuple<T> tuple_type;
+  typedef T head_type;
+  typedef int next_type;
+  enum
+  {
+    size = 1,
+    sizeof_min = sizeof(T),
+    sizeof_max = sizeof(T),
+    alignof_min = alignof(T),
+    alignof_max = alignof(T)
+  };
+};
+
+template<typename T0, typename... Ts>
+struct typelist<T0, Ts...>
+{
+  typedef std::tuple<T0, Ts...> tuple_type;
+  typedef T0 head_type;
+  typedef typelist<Ts...> next_type;
+  enum
+  {
+    size = sizeof...(Ts) + 1,
+    sizeof_min = (sizeof(T0) < next_type::sizeof_min) ? sizeof(T0) : next_type::sizeof_min,
+    sizeof_max = (sizeof(T0) > next_type::sizeof_min) ? sizeof(T0) : next_type::sizeof_max,
+    alignof_min = (alignof(T0) < next_type::alignof_min) ? alignof(T0) : next_type::alignof_min,
+    alignof_max = (alignof(T0) > next_type::alignof_min) ? alignof(T0) : next_type::alignof_max
   };
 };
 
@@ -63,80 +98,6 @@ struct tl_type_at<Index, TL<TL_deduce...>>
 {
   static_assert(Index < TL<TL_deduce...>::size, "typelist index out of bounds");
   typedef typename ct_select<Index, TL_deduce...>::type type;
-};
-
-template<typename TL,
-         size_t Index = 0,
-         typename TypeOfResult = typename tl_type_at<0, TL>::type,
-         size_t SizeResult = sizeof(typename tl_type_at<0, TL>::type),
-         bool IsMin = true,
-         bool AtEnd = (Index == TL::size - 1)>
-struct tl_min_size;
-
-template<typename TL, size_t Index, typename TypeOfResult, size_t SizeResult, bool IsMin>
-struct tl_min_size<TL, Index, TypeOfResult, SizeResult, IsMin, true>
-{
-  typedef TypeOfResult type;
-  static constexpr size_t size = SizeResult;
-  static constexpr size_t index = Index;
-};
-
-template<typename TL, size_t Index, typename TypeOfResult, size_t SizeResult>
-struct tl_min_size<TL, Index, TypeOfResult, SizeResult, true, false>
-{
-  typedef typename tl_type_at<Index, TL>::type current_type;
-  static constexpr size_t current_size = sizeof(typename tl_type_at<Index, TL>::type);
-  static constexpr size_t next_size = sizeof(typename tl_type_at<Index + 1, TL>::type);
-  static constexpr size_t size =
-    tl_min_size<TL, Index + 1, current_type, current_size, (next_size < current_size), (Index + 1 == TL::size - 1)>::
-      size;
-};
-
-template<typename TL, size_t Index, typename TypeOfResult, size_t SizeResult>
-struct tl_min_size<TL, Index, TypeOfResult, SizeResult, false, false>
-{
-  typedef typename tl_type_at<Index, TL>::type current_type;
-  static constexpr size_t current_size = sizeof(typename tl_type_at<Index, TL>::type);
-  static constexpr size_t next_size = sizeof(typename tl_type_at<Index + 1, TL>::type);
-  static constexpr size_t size =
-    tl_min_size<TL, Index + 1, TypeOfResult, SizeResult, (next_size < current_size), (Index + 1 == TL::size - 1)>::size;
-};
-
-template<typename TL,
-         size_t Index = 0,
-         typename TypeOfResult = typename tl_type_at<0, TL>::type,
-         size_t SizeResult = sizeof(typename tl_type_at<0, TL>::type),
-         bool IsMax = true,
-         bool AtEnd = (Index == TL::size - 1)>
-struct tl_max_size;
-
-template<typename TL, size_t Index, typename TypeOfResult, size_t SizeResult, bool IsMax>
-struct tl_max_size<TL, Index, TypeOfResult, SizeResult, IsMax, true>
-{
-  typedef TypeOfResult type;
-  static constexpr size_t size = SizeResult;
-  static constexpr size_t index = Index;
-};
-
-template<typename TL, size_t Index, typename TypeOfResult, size_t SizeResult>
-struct tl_max_size<TL, Index, TypeOfResult, SizeResult, true, false>
-{
-  typedef typename tl_type_at<Index, TL>::type current_type;
-  static constexpr size_t current_size = sizeof(typename tl_type_at<Index, TL>::type);
-  static constexpr size_t next_size = sizeof(typename tl_type_at<Index + 1, TL>::type);
-  static constexpr size_t size =
-    tl_max_size<TL, Index + 1, current_type, current_size, (next_size > current_size), (Index + 1 == TL::size - 1)>::
-      size;
-};
-
-template<typename TL, size_t Index, typename TypeOfResult, size_t SizeResult>
-struct tl_max_size<TL, Index, TypeOfResult, SizeResult, false, false>
-{
-  typedef typename tl_type_at<Index, TL>::type current_type;
-  static constexpr size_t current_size = sizeof(typename tl_type_at<Index, TL>::type);
-  static constexpr size_t next_size = sizeof(typename tl_type_at<Index + 1, TL>::type);
-  static constexpr size_t size =
-    tl_max_size<TL, Index + 1, TypeOfResult, SizeResult, (next_size > current_size), (Index + 1 == TL::size - 1)>::size;
 };
 
 template<typename TL, typename... NewTypes>

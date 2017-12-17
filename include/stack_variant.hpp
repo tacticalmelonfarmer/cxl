@@ -8,27 +8,37 @@
 namespace utility {
 
 template<typename... Ts>
-struct variant_stack_allocator
+struct alignas(typelist<Ts...>::alignof_max) span
 {
-  static_assert(sizeof(char) == 1, "your compiler is breaking my code");
-  static constexpr size_t size = ct::biggest_type_v<Ts...>;
-
+  char data[typelist<Ts...>::sizeof_max];
   template<typename T>
-  T& access()
+  constexpr span<Ts...>& operator=(const T& value)
   {
-    static_assert(sizeof(T) <= size, "cannot convert data_ to type T it is too big");
-    return *reinterpret_cast<T*>(&data_);
+    const_cast<T&>(*this) = value;
   }
-
   template<typename T>
-  const T& access() const
+  constexpr operator const T&() const
   {
-    static_assert(sizeof(T) <= size, "cannot convert data_ to type T it is too big");
-    return *reinterpret_cast<const T*>(&data_);
+    return const_cast<const T&>(*this);
   }
+};
 
-private:
-  char data_[size];
+template<typename T>
+struct wrapper
+{
+  using type = T;
+
+  constexpr wrapper<T>& operator==(const wrapper<T>&) const { return true; }
+  template<typename U>
+  constexpr wrapper<T>& operator==(const wrapper<U>&) const
+  {
+    return false;
+  }
+  template<typename U>
+  constexpr wrapper<T>& operator!=(U&) const
+  {
+    return !(*this == U{});
+  }
 };
 
 template<typename T, typename... Ts>
@@ -41,8 +51,8 @@ struct stack_variant
     {}
   };
 
-  typedef typelist<T, Ts...> types;
-  typedef variant_stack_allocator<T, Ts...> value_type;
+  using types = typelist<T, Ts...>;
+  using value_type = span<T, Ts...>;
   static constexpr size_t invalid_index = sizeof...(Ts) + 1; // one past the last type
 
   stack_variant()

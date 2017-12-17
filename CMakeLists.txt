@@ -2,22 +2,16 @@ cmake_minimum_required(VERSION 3.7)
 
 project(utility LANGUAGES CXX)
 
-set(BUILD_TREE ${CMAKE_CURRENT_SOURCE_DIR}/build)
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${BUILD_TREE}/lib)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${BUILD_TREE}/lib)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${BUILD_TREE}/bin)
+include_directories(include)
 
-add_subdirectory(type_safe)
-include_directories(type_safe/include ${CMAKE_CURRENT_SOURCE_DIR}/include)
-
-add_executable(variant_use example/variant_use.cpp)
+add_executable(variant_use src/variant_use.cpp)
 target_compile_features(variant_use PUBLIC cxx_std_17)
 
-add_executable(cexpr_use example/cexpr_use.cpp)
+add_executable(cexpr_use src/cexpr_use.cpp)
 target_compile_features(cexpr_use PUBLIC cxx_std_17)
 
 find_package(Threads)
-add_executable(callstack_use example/callstack_use.cpp)
+add_executable(callstack_use src/callstack_use.cpp)
 target_compile_features(callstack_use PUBLIC cxx_std_17)
 target_link_libraries(callstack_use ${CMAKE_THREAD_LIBS_INIT})
 
