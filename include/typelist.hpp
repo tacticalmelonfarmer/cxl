@@ -1,333 +1,177 @@
 #pragma once
 
+#include "cintegral.hpp"
 #include "utility.hpp"
+#include <type_traits>
 
 namespace utility {
 
 template<typename... Ts>
 struct typelist;
 
-template<>
-struct typelist<>
-{
-  enum
-  {
-    size = 0
-  };
-};
+namespace detail {
 
-template<typename T>
-struct typelist<T>
+template<typename... Ts>
+struct tl_helper;
+
+template<>
+struct tl_helper<>
 {
-  typedef std::tuple<T> tuple_type;
-  typedef T head_type;
-  typedef int next_type;
-  enum
-  {
-    size = 1,
-    sizeof_min = sizeof(T),
-    sizeof_max = sizeof(T),
-    alignof_min = alignof(T),
-    alignof_max = alignof(T)
-  };
+  using head_type = void;
+  using next_types = void;
 };
 
 template<typename T0, typename... Ts>
-struct typelist<T0, Ts...>
+struct tl_helper<T0, Ts...>
 {
-  typedef std::tuple<T0, Ts...> tuple_type;
-  typedef T0 head_type;
-  typedef typelist<Ts...> next_type;
-  enum
+  using head_type = T0;
+  using next_types = typelist<Ts...>;
+};
+}
+
+using namespace detail;
+
+template<>
+struct typelist<>
+{
+  using head_type = void;
+  using next_types = void;
+  const size_t size = 0;
+  const size_t sizeof_min = 0;
+  const size_t sizeof_max = 0;
+  const size_t alignof_min = 0;
+  const size_t alignof_max = 0;
+
+  template<template<typename...> typename TL, typename... Deduced>
+  constexpr auto append(TL<Deduced...>) const
   {
-    size = sizeof...(Ts) + 1,
-    sizeof_min = (sizeof(T0) < next_type::sizeof_min) ? sizeof(T0) : next_type::sizeof_min,
-    sizeof_max = (sizeof(T0) > next_type::sizeof_min) ? sizeof(T0) : next_type::sizeof_max,
-    alignof_min = (alignof(T0) < next_type::alignof_min) ? alignof(T0) : next_type::alignof_min,
-    alignof_max = (alignof(T0) > next_type::alignof_min) ? alignof(T0) : next_type::alignof_max
-  };
+    return typelist<Deduced...>{};
+  }
+
+  template<template<typename...> typename TL, typename... Deduced>
+  constexpr auto prepend(TL<Deduced...>) const
+  {
+    return typelist<Deduced...>{};
+  }
+
+  template<template<typename...> typename ApplyTo>
+  constexpr auto apply() const
+  {
+    return ApplyTo<>{};
+  }
 };
 
-template<template<typename...> typename ApplyTo, typename TL>
-struct tl_apply;
-
-template<template<typename...> typename ApplyTo, template<typename...> typename TL, typename... TL_deduce>
-struct tl_apply<ApplyTo, TL<TL_deduce...>>
+template<template<typename...> typename... MetaTypes>
+struct metatypelist
 {
-  typedef ApplyTo<TL_deduce...> type;
+  template<typename... Types>
+  constexpr auto establish() const
+  {
+    return typelist<MetaTypes<Types...>...>{};
+  }
 };
 
-template<template<typename...> typename ApplyTo, typename TL, typename... Post>
-struct tl_apply_before;
-
-template<template<typename...> typename ApplyTo,
-         template<typename...> typename TL,
-         typename... TL_deduce,
-         typename... Post>
-struct tl_apply_before<ApplyTo, TL<TL_deduce...>, Post...>
+template<template<size_t...> typename... MetaTypes>
+struct metaindexrange
 {
-  typedef ApplyTo<TL_deduce..., Post...> type;
+  template<size_t... Indices>
+  constexpr auto establish() const
+  {
+    return typelist<MetaTypes<Indices...>...>{};
+  }
 };
 
-template<template<typename...> typename ApplyTo, typename TL, typename... Pre>
-struct tl_apply_after;
-
-template<template<typename...> typename ApplyTo,
-         template<typename...> typename TL,
-         typename... TL_deduce,
-         typename... Pre>
-struct tl_apply_after<ApplyTo, TL<TL_deduce...>, Pre...>
+template<typename... Ts>
+struct typelist
 {
-  typedef ApplyTo<Pre..., TL_deduce...> type;
-};
+  using head_type = typename tl_helper<Ts...>::head_type;
+  using next_types = typename tl_helper<Ts...>::next_types;
 
-template<typename F, typename TL>
-struct tl_index_of;
+  const size_t size = sizeof...(Ts);
+  const size_t sizeof_min = (sizeof(head_type) < next_types{}.sizeof_min) ? sizeof(head_type) : next_types{}.sizeof_min;
+  const size_t sizeof_max = (sizeof(head_type) > next_types{}.sizeof_min) ? sizeof(head_type) : next_types{}.sizeof_max;
+  const size_t alignof_min =
+    (alignof(head_type) < next_types{}.alignof_min) ? alignof(head_type) : next_types{}.alignof_min;
+  const size_t alignof_max =
+    (alignof(head_type) > next_types{}.alignof_min) ? alignof(head_type) : next_types{}.alignof_max;
 
-template<typename F, template<typename...> typename TL, typename T, typename... Ts>
-struct tl_index_of<F, TL<T, Ts...>>
-{
-  static constexpr size_t index = ct_index_of<F, T, Ts...>::index;
-};
+  const size_t end_index = sizeof...(Ts) - 1;
+  const size_t invlaid_index = sizeof...(Ts);
 
-template<size_t Index, typename TL>
-struct tl_type_at;
+  template<size_t Begin, size_t End, size_t Index, typename... Collector>
+  constexpr auto subrange() const
+  {
+    if constexpr (Index >= Begin && Index <= End) {
+      return subrange<Begin, End, Index + 1, Collector..., typename ct_select<Index, Ts...>::type>();
+    } else if constexpr (Index < Begin) {
+      return subrange<Begin, End, Index + 1>();
+    } else if constexpr (Index > End) {
+      return typelist<Collector...>{};
+    }
+  }
 
-template<size_t Index, template<typename...> typename TL, typename... TL_deduce>
-struct tl_type_at<Index, TL<TL_deduce...>>
-{
-  static_assert(Index < TL<TL_deduce...>::size, "typelist index out of bounds");
-  typedef typename ct_select<Index, TL_deduce...>::type type;
-};
+  template<size_t Index, template<typename...> typename TL, typename... Deduced>
+  constexpr auto splice(TL<Deduced...>) const
+  {
+    constexpr auto first_partition = subrange<0, Index - 1>();
+    constexpr auto last_partition = subrange<Index, end_index>();
+    return first_partition.append_types(TL<Deduced...>{}).join(last_partition);
+  }
 
-template<typename TL, typename... NewTypes>
-struct tl_push_back;
+  template<template<typename...> typename TL, typename... Deduced>
+  constexpr auto append(TL<Deduced...>) const
+  {
+    return typelist<Ts..., Deduced...>{};
+  }
 
-template<template<typename...> typename TL, typename... TL_deduce, typename... NewTypes>
-struct tl_push_back<TL<TL_deduce...>, NewTypes...>
-{
-  typedef typename tl_apply_before<typelist, TL<TL_deduce...>, NewTypes...>::type type;
-};
+  template<template<typename...> typename TL, typename... Deduced>
+  constexpr auto prepend(TL<Deduced...>) const
+  {
+    return typelist<Deduced..., Ts...>{};
+  }
 
-template<typename TL, typename... NewTypes>
-struct tl_push_front;
+  template<size_t Index>
+  constexpr auto erase(const std::integral_constant<size_t, Index>) const
+  {
+    constexpr auto first_partition = subrange<0, Index - 1>();
+    constexpr auto last_partition = subrange<Index + 1, end_index>();
+    return first_partition.join(last_partition);
+  }
 
-template<template<typename...> typename TL, typename... TL_deduce, typename... NewTypes>
-struct tl_push_front<TL<TL_deduce...>, NewTypes...>
-{
-  typedef typename tl_apply_after<typelist, TL<TL_deduce...>, NewTypes...>::type type;
-};
+  template<size_t Begin, size_t End>
+  constexpr auto erase(const std::integral_constant<size_t, Begin>, const std::integral_constant<size_t, End>) const
+  {
+    constexpr auto first_partition = subrange<0, Begin - 1>();
+    constexpr auto last_partition = subrange<End + 1, end_index>();
+    return first_partition.join(last_partition);
+  }
 
-template<typename TL>
-struct tl_back
-{
-  typedef typename tl_type_at<TL::size - 1, TL>::type type;
-};
+  template<template<typename...> typename ApplyTo>
+  constexpr auto apply() const
+  {
+    return ApplyTo<Ts...>{};
+  }
 
-template<typename TL>
-struct tl_front
-{
-  typedef typename tl_type_at<0, TL>::type type;
-};
+  template<typename Type>
+  constexpr auto index_of() const
+  {
+    return index_of<Type, Ts...>();
+  }
 
-template<typename TL,
-         size_t Begin,
-         size_t End,
-         size_t Position = 0,
-         bool AtEnd = false,
-         bool AddType = (Begin == 0),
-         typename... Result>
-struct tl_subrange;
+  template<size_t Index>
+  constexpr auto type_at(const std::integral_constant<size_t, Index>) const
+  {
+    return select_t<Index, Ts...>{};
+  }
 
-template<typename TL, size_t Begin, size_t End, size_t Position, typename... Result>
-struct tl_subrange<TL, Begin, End, Position, true, true, Result...> // end
-{
-  typedef typelist<Result..., typename tl_type_at<Position, TL>::type> type;
-};
+  template<size_t Index>
+  constexpr auto operator[](const std::integral_constant<size_t, Index>) const
+  {
+    return type_at(std::integral_constant<size_t, Index>{});
+  }
 
-template<typename TL, size_t Begin, size_t End, size_t Position, typename... Result>
-struct tl_subrange<TL, Begin, End, Position, true, false, Result...> // end
-{
-  typedef typelist<Result...> type;
-};
+  constexpr auto front() const { return select_t<0, Ts...>{}; }
 
-template<typename TL, size_t Begin, size_t End, size_t Position, typename... Result>
-struct tl_subrange<TL, Begin, End, Position, false, true, Result...>
-{
-  static constexpr bool add_next_type = Position + 1 >= Begin && Position + 1 <= End;
-  static constexpr bool next_is_last = Position + 1 == End;
-  typedef typename tl_subrange<TL,
-                               Begin,
-                               End,
-                               Position + 1,
-                               next_is_last,
-                               add_next_type,
-                               Result...,
-                               typename tl_type_at<Position, TL>::type>::type type;
-};
-
-template<typename TL, size_t Begin, size_t End, size_t Position, typename... Result>
-struct tl_subrange<TL, Begin, End, Position, false, false, Result...>
-{
-  static constexpr bool add_next_type = Position + 1 >= Begin && Position + 1 <= End;
-  static constexpr bool next_is_last = Position + 1 == End;
-  typedef typename tl_subrange<TL, Begin, End, Position + 1, next_is_last, add_next_type, Result...>::type type;
-};
-
-template<typename TL, size_t Begin, size_t End, typename... Result>
-struct tl_subrange<TL, Begin, End, 0, false, true, Result...> // entry add type
-{
-  static constexpr bool Position = 0;
-  static constexpr bool add_next_type = Begin <= 1;
-  static constexpr bool next_is_last = End == 1;
-  typedef typename tl_subrange<TL,
-                               Begin,
-                               End,
-                               Position + 1,
-                               next_is_last,
-                               add_next_type,
-                               typename tl_type_at<Position, TL>::type>::type type;
-};
-
-template<typename TL, size_t Begin, size_t End, typename... Result>
-struct tl_subrange<TL, Begin, End, 0, false, false, Result...> // entry without adding type
-{
-  static constexpr bool Position = 0;
-  static constexpr bool add_next_type = Begin == 1;
-  static constexpr bool next_is_last = End == 1;
-  typedef typename tl_subrange<TL, Begin, End, Position + 1, next_is_last, add_next_type>::type type;
-};
-
-template<typename TL1, typename TL2>
-struct tl_join;
-
-template<template<typename> typename TL1,
-         typename... TL1_deduce,
-         template<typename> typename TL2,
-         typename... TL2_deduce>
-struct tl_join<TL1<TL1_deduce...>, TL2<TL2_deduce...>>
-{
-  typedef typelist<TL1_deduce..., TL2_deduce...> type;
-};
-
-template<typename TLDest, size_t Index, typename TLSource>
-struct tl_insert
-{
-  typedef typename tl_subrange<TLDest, 0, Index - 1>::type first_partition;
-  typedef typename tl_subrange<TLDest, Index, TLDest::size - 1>::type last_partition;
-  typedef typename tl_join<first_partition, typename tl_join<TLSource, last_partition>::type>::type type;
-};
-
-template<typename TLDest, size_t Index, typename... NewTypes>
-struct tl_insert_t
-{
-  typedef typename tl_subrange<TLDest, 0, Index - 1>::type first_partition;
-  typedef typename tl_subrange<TLDest, Index, TLDest::size - 1>::type last_partition;
-  typedef typename tl_join<first_partition, typename tl_push_front<last_partition, NewTypes...>::type>::type type;
-};
-
-template<typename TL, size_t Index>
-struct tl_remove
-{
-  typedef typename tl_subrange<TL, 0, Index - 1>::type first_partition;
-  typedef typename tl_subrange<TL, Index + 1, TL::size - 1>::type last_partition;
-  typedef typename tl_join<first_partition, last_partition>::type type;
-};
-
-template<typename TL, size_t Begin, size_t End>
-struct tl_remove_subrange
-{
-  typedef typename tl_subrange<TL, 0, Begin - 1>::type first_partition;
-  typedef typename tl_subrange<TL, End + 1, TL::size - 1>::type last_partition;
-  typedef typename tl_join<first_partition, last_partition>::type type;
-};
-
-template<typename TL, size_t Size = 1>
-struct tl_pop_back
-{
-  typedef typename tl_subrange<TL, 0, TL::size - 1 - Size>::type type;
-};
-
-template<typename TL, size_t Size = 1>
-struct tl_pop_front
-{
-  typedef typename tl_subrange<TL, Size, TL::size - 1>::type type;
-};
-
-template<template<typename> typename ApplyTo, typename TL>
-struct tl_apply_callsign;
-
-template<template<typename> typename ApplyTo, template<typename...> typename TL, typename R, typename... Ps>
-struct tl_apply_callsign<ApplyTo, TL<R, Ps...>>
-{
-  typedef ApplyTo<R(Ps...)> type;
-};
-
-template<typename TL>
-struct tl_callsign; //< callsign means function signature
-
-template<template<typename...> typename TL, typename R, typename... Ps>
-struct tl_callsign<TL<R, Ps...>>
-{
-  typedef R return_type;
-  typedef typelist<Ps...> param_types;
-  typedef R (*pointer_type)(Ps...);
-};
-
-template<typename F, typename TL>
-struct tl_has_type;
-
-template<typename F, template<typename...> typename TL>
-struct tl_has_type<F, TL<>>
-{
-  static constexpr bool value = false;
-};
-
-template<typename F, template<typename> typename TL, typename T>
-struct tl_has_type<F, TL<T>>
-{
-  static constexpr bool value = std::is_same<F, T>::value && sizeof(F) == sizeof(T);
-};
-
-template<typename F, template<typename...> typename TL, typename T, typename... Ts>
-struct tl_has_type<F, TL<T, Ts...>>
-{
-  static constexpr bool value =
-    (std::is_same<F, T>::value && sizeof(F) == sizeof(T)) || tl_has_type<F, TL<Ts...>>::value;
-};
-
-template<typename F, typename TL>
-struct tl_has_conversion;
-
-template<typename F, template<typename> typename TL, typename T>
-struct tl_has_conversion<F, TL<T>>
-{
-  static constexpr bool value = std::is_convertible<F, T>::value;
-};
-
-template<typename F, template<typename...> typename TL, typename T, typename... Ts>
-struct tl_has_conversion<F, TL<T, Ts...>>
-{
-  static constexpr bool value = std::is_convertible<F, T>::value || tl_has_conversion<F, TL<Ts...>>::value;
-};
-
-template<typename F, typename TL>
-struct tl_find_conversion;
-
-template<typename F, template<typename> typename TL, typename T>
-struct tl_find_conversion<F, TL<T>>
-{
-  static constexpr bool valid_conversion = std::is_convertible<F, T>::value;
-  static_assert(valid_conversion, "could not find suitable a suitable conversion for F in typelist");
-  typedef T type;
-};
-
-template<typename F, template<typename...> typename TL, typename T, typename... Ts>
-struct tl_find_conversion<F, TL<T, Ts...>>
-{
-  static constexpr bool valid_conversion = std::is_convertible<F, T>::value;
-  typedef typename ct_if_else</*If*/ valid_conversion,
-                              /*Then*/ T,
-                              /*Else*/ typename tl_find_conversion<F, TL<Ts...>>::type>::type type;
+  constexpr auto back() const { return select_t<end_index, Ts...>{}; }
 };
 }

@@ -2,21 +2,25 @@ cmake_minimum_required(VERSION 3.7)
 
 project(utility LANGUAGES CXX)
 
-include_directories(include)
+add_executable(callstack src/tests/callstack.cpp)
+target_include_directories(callstack PUBLIC include)
+target_compile_features(callstack PUBLIC cxx_std_17)
 
-add_executable(variant_use src/variant_use.cpp)
-target_compile_features(variant_use PUBLIC cxx_std_17)
+add_executable(cintegral src/tests/cintegral.cpp)
+target_include_directories(cintegral PUBLIC include)
+target_compile_features(cintegral PUBLIC cxx_std_17)
 
-add_executable(cexpr_use src/cexpr_use.cpp)
-target_compile_features(cexpr_use PUBLIC cxx_std_17)
+add_executable(citerator src/tests/citerator.cpp)
+target_include_directories(citerator PUBLIC include)
+target_compile_features(citerator PUBLIC cxx_std_17)
 
-find_package(Threads)
-add_executable(callstack_use src/callstack_use.cpp)
-target_compile_features(callstack_use PUBLIC cxx_std_17)
-target_link_libraries(callstack_use ${CMAKE_THREAD_LIBS_INIT})
+add_executable(cparse src/tests/cparse.cpp)
+target_include_directories(cparse PUBLIC include)
+target_compile_features(cparse PUBLIC cxx_std_17)
 
-add_library(utility INTERFACE)
-target_include_directories (utility INTERFACE
-$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-$<INSTALL_INTERFACE:include>
+set_target_properties(callstack cintegral citerator cparse
+  PROPERTIES
+  ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
+  LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
+  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )

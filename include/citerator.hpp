@@ -1,9 +1,7 @@
 #pragma once
-#include "cindex.hpp"
 #include "utility.hpp"
-#include <type_traits>
 
-namespace utility::cexpr {
+namespace utility {
 
 template<typename T, size_t Index>
 struct citerator
@@ -35,30 +33,30 @@ struct citerator
   }
 };
 
-template<typename T, size_t From, size_t Off>
+template<typename T, size_t From, typename U, U Off>
 constexpr auto
-operator+(const citerator<T, From>&, const cindex<Off>&)
+operator+(const citerator<T, From>, const std::integral_constant<U, Off>)
 {
   return citerator<T, From + Off>{};
 }
 
-template<typename T, size_t From, size_t Off>
+template<typename T, size_t From, typename U, U Off>
 constexpr auto
-operator-(const citerator<T, From>&, const cindex<Off>&)
+operator-(const citerator<T, From>, const std::integral_constant<U, Off>)
 {
   return citerator<T, From - Off>{};
 }
 
-template<typename T, size_t From, size_t Off>
+template<typename T, size_t From, typename U, U Off>
 constexpr auto
-operator+(const cindex<Off>&, const citerator<T, From>&)
+operator+(const std::integral_constant<U, Off>, const citerator<T, From>)
 {
   return citerator<T, From + Off>{};
 }
 
-template<typename T, size_t From, size_t Off>
+template<typename T, size_t From, typename U, U Off>
 constexpr auto
-operator-(const cindex<Off>&, const citerator<T, From>&)
+operator-(const std::integral_constant<U, Off>, const citerator<T, From>)
 {
   return citerator<T, From - Off>{};
 }
