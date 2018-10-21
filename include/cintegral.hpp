@@ -4,17 +4,17 @@
 namespace utility {
 namespace literals {
 
-template<typename Char, Char... Chars>
+/* template<typename Char, Char... Chars>
 constexpr auto operator"" _chr()
 {
   static_assert(sizeof...(Chars) == 1, "char literal '_chr' must be a single character");
   return std::integral_constant<char, Chars...>{};
-}
+}  //c++20 hopefully*/
 
 template<char... Digits>
 constexpr auto operator"" _idx()
 {
-  return std::integral_constant<size_t, combine_digits_base10(0, parse_digit(Digits)...)>{};
+  return std::integral_constant<index_t, combine_digits_base10(0, parse_digit(Digits)...)>{};
 }
 
 template<char... Digits>

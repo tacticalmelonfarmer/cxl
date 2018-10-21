@@ -10,10 +10,11 @@ namespace parse {
 
 using namespace literals;
 
-enum class parse_status : bool
+enum class parse_status
 {
-  success = true,
-  failure = false
+  success = 1,
+  failure = 0,
+  incomplete = 2
 };
 
 template<typename Match, typename Remainder, parse_status Status, typename TreeTL>
@@ -34,7 +35,7 @@ struct parse_result
     return parse_result<Match, String, Status, TreeTL>{};
   }
   template<typename Generator>
-  constexpr auto set_generator(const Generator) const
+  constexpr auto generate(const Generator) const
   {
     return parse_result<Match, Remainder, Status, typelist<Generator>>{};
   }
@@ -52,10 +53,10 @@ operator+(const parse_result<M1, R1, P1, T1>, const parse_result<M2, R2, P2, T2>
 /////////////////////////// forward parser decls.
 
 template<typename TargetString>
-struct string;
+struct one_string;
 
 template<typename TargetString>
-struct one_in_string;
+struct one_char;
 
 template<typename Target>
 struct before;
@@ -72,16 +73,16 @@ struct one_or_more;
 template<typename Target>
 struct zero_or_more;
 
-template<typename Target, size_t I>
+template<typename Target, index_t I>
 struct repeat;
 
-template<typename Target, size_t I>
+template<typename Target, index_t I>
 struct repeat_lower_bound;
 
-template<typename Target, size_t I>
+template<typename Target, index_t I>
 struct repeat_upper_bound;
 
-template<typename Target, size_t Min, size_t Max>
+template<typename Target, index_t Min, index_t Max>
 struct repeat_fully_bound;
 
 template<typename Target0, typename... Targets>
@@ -90,16 +91,16 @@ struct sequence;
 template<typename Target0, typename... Targets>
 struct one_of;
 
-template<typename Target, template<typename, typename> typename Synth>
+template<typename Target, template<typename...> typename Output>
 struct generator;
 
 /////////////////////////// parsers
 
 template<typename TargetString>
-struct string
+struct one_string
 {
-  constexpr string() {}
-  constexpr string(const TargetString) {}
+  constexpr one_string() {}
+  constexpr one_string(const TargetString) {}
 
   template<typename String>
   constexpr auto parse(const String) const
@@ -109,7 +110,7 @@ struct string
     if constexpr (target.size > string.size) {
       return parse_result<cstring<>, String, parse_status::failure, typelist<>>{};
     } else {
-      constexpr size_t size_of_match = match_size<TargetString, String>{}.match(make_index_range<0, target.size - 1>());
+      constexpr index_t size_of_match = cmatch(target, string);
       if constexpr (size_of_match == 0)
         return parse_result<cstring<>, String, parse_status::failure, typelist<>>{};
       if constexpr (size_of_match == target.size) {
@@ -125,25 +126,31 @@ struct string
     }
   }
 
-  constexpr auto operator!() const { return filter<string<TargetString>>{}; }
-  constexpr auto operator~() const { return optional<string<TargetString>>{}; }
-  constexpr auto operator+() const { return one_or_more<string<TargetString>>{}; }
-  constexpr auto operator*() const { return zero_or_more<string<TargetString>>{}; }
-
-  template<size_t I>
-  constexpr auto operator[](const std::integral_constant<size_t, I>) const
+  template<template<typename...> typename Output>
+  constexpr auto generate(const Output<>) const
   {
-    return repeat<string<TargetString>, I>{};
+    return generator(decltype(*this){}, Output<>{});
+  }
+
+  constexpr auto operator!() const { return filter<one_string<TargetString>>{}; }
+  constexpr auto operator~() const { return optional<one_string<TargetString>>{}; }
+  constexpr auto operator+() const { return one_or_more<one_string<TargetString>>{}; }
+  constexpr auto operator*() const { return zero_or_more<one_string<TargetString>>{}; }
+
+  template<index_t I>
+  constexpr auto operator[](const std::integral_constant<index_t, I>) const
+  {
+    return repeat<one_string<TargetString>, I>{};
   }
 };
 
 template<typename TargetString>
-struct one_in_string
+struct one_char
 {
-  constexpr one_in_string() {}
-  constexpr one_in_string(const TargetString) {}
+  constexpr one_char() {}
+  constexpr one_char(const TargetString) {}
 
-  template<typename String, size_t... Indices>
+  template<typename String, index_t... Indices>
   constexpr auto parse_impl(const String, const index_range<Indices...>) const
   {
     constexpr auto target_string = TargetString{};
@@ -162,18 +169,24 @@ struct one_in_string
   {
     constexpr auto target_string = TargetString{};
     constexpr auto string = String{};
-    return parse_impl(string, make_index_range<0, target_string.size - 1>);
+    return parse_impl(string, make_index_range<0, target_string.size() - 1>());
   }
 
-  constexpr auto operator!() const { return filter<one_in_string<TargetString>>{}; }
-  constexpr auto operator~() const { return optional<one_in_string<TargetString>>{}; }
-  constexpr auto operator+() const { return one_or_more<one_in_string<TargetString>>{}; }
-  constexpr auto operator*() const { return zero_or_more<one_in_string<TargetString>>{}; }
-
-  template<size_t I>
-  constexpr auto operator[](const std::integral_constant<size_t, I>) const
+  template<template<typename...> typename Output>
+  constexpr auto generate(const Output<>) const
   {
-    return repeat<one_in_string<TargetString>, I>{};
+    return generator(decltype(*this){}, Output<>{});
+  }
+
+  constexpr auto operator!() const { return filter<one_char<TargetString>>{}; }
+  constexpr auto operator~() const { return optional<one_char<TargetString>>{}; }
+  constexpr auto operator+() const { return one_or_more<one_char<TargetString>>{}; }
+  constexpr auto operator*() const { return zero_or_more<one_char<TargetString>>{}; }
+
+  template<index_t I>
+  constexpr auto operator[](const std::integral_constant<index_t, I>) const
+  {
+    return repeat<one_char<TargetString>, I>{};
   }
 };
 
@@ -194,19 +207,25 @@ struct before
       return parse_result<decltype(result.match()), String, parse_status::failure, typelist<>>{};
   }
 
+  template<template<typename...> typename Output>
+  constexpr auto generate(const Output<>) const
+  {
+    return generator(decltype(*this){}, Output<>{});
+  }
+
   constexpr auto operator~() const { return optional<before<Target>>{}; }
   constexpr auto operator+() const { return one_or_more<before<Target>>{}; }
   constexpr auto operator*() const { return zero_or_more<before<Target>>{}; }
 
-  template<size_t I>
-  constexpr auto operator[](const std::integral_constant<size_t, I>) const
+  template<index_t I>
+  constexpr auto operator[](const std::integral_constant<index_t, I>) const
   {
     return repeat<before<Target>, I>{};
   }
 };
 
 template<template<char...> typename String, char... Chars>
-before(const String<Chars...>&)->before<string<String<Chars...>>>;
+before(const String<Chars...>&)->before<one_string<String<Chars...>>>;
 
 template<typename Target>
 struct filter
@@ -228,19 +247,25 @@ struct filter
                           typelist<>>{};
   }
 
+  template<template<typename...> typename Output>
+  constexpr auto generate(const Output<>) const
+  {
+    return generator(decltype(*this){}, Output<>{});
+  }
+
   constexpr auto operator~() const { return optional<filter<Target>>{}; }
   constexpr auto operator+() const { return one_or_more<filter<Target>>{}; }
   constexpr auto operator*() const { return zero_or_more<filter<Target>>{}; }
 
-  template<size_t I>
-  constexpr auto operator[](const std::integral_constant<size_t, I>) const
+  template<index_t I>
+  constexpr auto operator[](const std::integral_constant<index_t, I>) const
   {
     return repeat<filter<Target>, I>{};
   }
 };
 
 template<template<char...> typename String, char... Chars>
-filter(const String<Chars...>)->filter<string<String<Chars...>>>;
+filter(const String<Chars...>)->filter<one_string<String<Chars...>>>;
 
 template<typename Target>
 struct optional
@@ -258,19 +283,25 @@ struct optional
       return parse_result<cstring<>, String, parse_status::success, typelist<>>{};
   }
 
+  template<template<typename...> typename Output>
+  constexpr auto generate(const Output<>) const
+  {
+    return generator(decltype(*this){}, Output<>{});
+  }
+
   constexpr auto operator!() const { return filter<optional<Target>>{}; }
   constexpr auto operator+() const { return one_or_more<optional<Target>>{}; }
   constexpr auto operator*() const { return zero_or_more<optional<Target>>{}; }
 
-  template<size_t I>
-  constexpr auto operator[](const std::integral_constant<size_t, I>) const
+  template<index_t I>
+  constexpr auto operator[](const std::integral_constant<index_t, I>) const
   {
     return repeat<optional<Target>, I>{};
   }
 };
 
 template<template<char...> typename String, char... Chars>
-optional(const String<Chars...>)->optional<string<String<Chars...>>>;
+optional(const String<Chars...>)->optional<one_string<String<Chars...>>>;
 
 template<typename Target>
 struct one_or_more
@@ -278,7 +309,7 @@ struct one_or_more
   constexpr one_or_more() {}
   constexpr one_or_more(const Target) {}
 
-  template<size_t Count = 0, typename String>
+  template<index_t Count = 0, typename String>
   constexpr auto parse(const String) const
   {
     constexpr Target target;
@@ -286,15 +317,21 @@ struct one_or_more
     constexpr auto result = target.parse(string);
     if constexpr (Count == 0) {
       if constexpr (result.status())
-        return result + parse<Count + 1>(csubstr(string.begin() + result.match().size, string.end()));
+        return result + parse<Count + 1>(csubstr(string.begin() + result.match().size(), string.end()));
       else
         return result;
     } else {
       if constexpr (result.status())
-        return result + parse<Count + 1>(csubstr(string.begin() + result.match().size, string.end()));
+        return result + parse<Count + 1>(csubstr(string.begin() + result.match().size(), string.end()));
       else
         return result.succeed();
     }
+  }
+
+  template<template<typename...> typename Output>
+  constexpr auto generate(const Output<>) const
+  {
+    return generator(decltype(*this){}, Output<>{});
   }
 
   constexpr auto operator!() const { return filter<one_or_more<Target>>{}; }
@@ -302,7 +339,7 @@ struct one_or_more
 };
 
 template<template<char...> typename String, char... Chars>
-one_or_more(const String<Chars...>)->one_or_more<string<String<Chars...>>>;
+one_or_more(const String<Chars...>)->one_or_more<one_string<String<Chars...>>>;
 
 template<typename Target>
 struct zero_or_more
@@ -310,47 +347,46 @@ struct zero_or_more
   constexpr zero_or_more() {}
   constexpr zero_or_more(const Target) {}
 
-  template<typename PreviousResult = parse_result<cstring<>, cstring<>, parse_status::success, typelist<>>,
-           typename String>
+  template<index_t Count = 0, typename String>
   constexpr auto parse(const String) const
   {
-    constexpr auto previous_result = PreviousResult{};
-    constexpr auto target = Target{};
-    constexpr auto string = String{};
+    constexpr Target target;
+    constexpr String string;
     constexpr auto result = target.parse(string);
 
-    if constexpr (result.status()) {
-      if constexpr (result.remainder().size == 0) {
-        return result.set_match(previous_result.match() + result.match()).set_remainder(cstring<>{});
-      } else
-        return parse<decltype(result.set_match(previous_result.match() + result.match()))>(result.remainder());
-    } else {
-      return previous_result;
-    }
+    if constexpr (result.status())
+      return result + parse<Count + 1>(csubstr(string.begin() + result.match().size(), string.end()));
+    else
+      return result.succeed();
+  }
+
+  template<template<typename...> typename Output>
+  constexpr auto generate(const Output<>) const
+  {
+    return generator(decltype(*this){}, Output<>{});
   }
 
   constexpr auto operator!() const { return filter<zero_or_more<Target>>{}; }
-  constexpr auto operator~() const { return optional<zero_or_more<Target>>{}; }
 };
 
 template<template<char...> typename String, char... Chars>
-zero_or_more(const String<Chars...>)->zero_or_more<string<String<Chars...>>>;
+zero_or_more(const String<Chars...>)->zero_or_more<one_string<String<Chars...>>>;
 
 //////////////////////////////////////////////////////////////
 
-template<size_t U, typename T>
+template<index_t U, typename T>
 struct identity
 {
   using type = T;
 };
 
-template<typename Target, size_t I>
+template<typename Target, index_t I>
 struct repeat
 {
   constexpr repeat() {}
-  constexpr repeat(const Target, const std::integral_constant<size_t, I>) {}
+  constexpr repeat(const Target, const std::integral_constant<index_t, I>) {}
 
-  template<size_t... Indices>
+  template<index_t... Indices>
   constexpr auto make_sequence(const index_range<Indices...>) const
   {
     return sequence<typename identity<Indices, Target>::type...>();
@@ -362,30 +398,36 @@ struct repeat
     return make_sequence(make_index_range<0, I - 1>()).parse(String{});
   }
 
+  template<template<typename...> typename Output>
+  constexpr auto generate(const Output<>) const
+  {
+    return generator(decltype(*this){}, Output<>{});
+  }
+
   constexpr auto operator!() const { return filter<repeat<Target, I>>{}; }
   constexpr auto operator~() const { return optional<repeat<Target, I>>{}; }
   constexpr auto operator++(int) const { return repeat_lower_bound<Target, I>{}; }
   constexpr auto operator--(int) const { return repeat_upper_bound<Target, I>{}; }
-  template<size_t J>
-  constexpr auto operator[](const std::integral_constant<size_t, J>) const
+  template<index_t J>
+  constexpr auto operator[](const std::integral_constant<index_t, J>) const
   {
     return repeat_fully_bound<Target, I, J>{};
   }
 };
 
-template<template<char...> typename String, char... Chars, size_t I>
-repeat(const String<Chars...>, const std::integral_constant<size_t, I>)->repeat<string<String<Chars...>>, I>;
+template<template<char...> typename String, char... Chars, index_t I>
+repeat(const String<Chars...>, const std::integral_constant<index_t, I>)->repeat<one_string<String<Chars...>>, I>;
 
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
 
-template<typename Target, size_t I>
+template<typename Target, index_t I>
 struct repeat_lower_bound
 {
   constexpr repeat_lower_bound() {}
-  constexpr repeat_lower_bound(const Target, const std::integral_constant<size_t, I>) {}
+  constexpr repeat_lower_bound(const Target, const std::integral_constant<index_t, I>) {}
 
-  template<size_t... Indices>
+  template<index_t... Indices>
   constexpr auto make_sequence(const index_range<Indices...>) const
   {
     constexpr auto new_targets =
@@ -393,28 +435,34 @@ struct repeat_lower_bound
     return new_targets.template apply<sequence>();
   }
 
-  template<size_t Count = 0, typename MatchedSoFar = cstring<>, typename String>
+  template<index_t Count = 0, typename MatchedSoFar = cstring<>, typename String>
   constexpr auto parse(const String) const
   {
     return make_sequence(make_index_range<0, I - 2>()).parse(String{});
+  }
+
+  template<template<typename...> typename Output>
+  constexpr auto generate(const Output<>) const
+  {
+    return generator(decltype(*this){}, Output<>{});
   }
 
   constexpr auto operator!() const { return filter<repeat_lower_bound<Target, I>>{}; }
   constexpr auto operator~() const { return optional<repeat_lower_bound<Target, I>>{}; }
 };
 
-template<template<char...> typename String, char... Chars, size_t I>
-repeat_lower_bound(const String<Chars...>, const std::integral_constant<size_t, I>)
-  ->repeat_lower_bound<string<String<Chars...>>, I>;
+template<template<char...> typename String, char... Chars, index_t I>
+repeat_lower_bound(const String<Chars...>, const std::integral_constant<index_t, I>)
+  ->repeat_lower_bound<one_string<String<Chars...>>, I>;
 
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
 
-template<typename Target, size_t I>
+template<typename Target, index_t I>
 struct repeat_upper_bound
 {
   constexpr repeat_upper_bound() {}
-  constexpr repeat_upper_bound(const Target, const std::integral_constant<size_t, I>) {}
+  constexpr repeat_upper_bound(const Target, const std::integral_constant<index_t, I>) {}
 
   template<typename String>
   constexpr auto parse(const String) const
@@ -431,24 +479,30 @@ struct repeat_upper_bound
       return parse_result<cstring<>, String, parse_status::success, typelist<>>{};
   }
 
+  template<template<typename...> typename Output>
+  constexpr auto generate(const Output<>) const
+  {
+    return generator(decltype(*this){}, Output<>{});
+  }
+
   constexpr auto operator!() const { return filter<repeat_upper_bound<Target, I>>{}; }
   constexpr auto operator~() const { return optional<repeat_upper_bound<Target, I>>{}; }
 };
 
-template<template<char...> typename String, char... Chars, size_t I>
-repeat_upper_bound(const String<Chars...>, const std::integral_constant<size_t, I>)
-  ->repeat_upper_bound<string<String<Chars...>>, I>;
+template<template<char...> typename String, char... Chars, index_t I>
+repeat_upper_bound(const String<Chars...>, const std::integral_constant<index_t, I>)
+  ->repeat_upper_bound<one_string<String<Chars...>>, I>;
 
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
 
-template<typename Target, size_t Min, size_t Max>
+template<typename Target, index_t Min, index_t Max>
 struct repeat_fully_bound
 {
   constexpr repeat_fully_bound() {}
   constexpr repeat_fully_bound(const Target,
-                               const std::integral_constant<size_t, Min>,
-                               const std::integral_constant<size_t, Max>)
+                               const std::integral_constant<index_t, Min>,
+                               const std::integral_constant<index_t, Max>)
   {}
 
   template<typename String>
@@ -467,15 +521,21 @@ struct repeat_fully_bound
       return parse_result<cstring<>, String, parse_status::success, typelist<>>{};
   }
 
+  template<template<typename...> typename Output>
+  constexpr auto generate(const Output<>) const
+  {
+    return generator(decltype(*this){}, Output<>{});
+  }
+
   constexpr auto operator~() const { return optional<repeat_fully_bound<Target, Min, Max>>{}; }
   constexpr auto operator!() const { return filter<repeat_fully_bound<Target, Min, Max>>{}; }
 };
 
-template<template<char...> typename String, char... Chars, size_t Min, size_t Max>
+template<template<char...> typename String, char... Chars, index_t Min, index_t Max>
 repeat_fully_bound(const String<Chars...>,
-                   const std::integral_constant<size_t, Min>,
-                   const std::integral_constant<size_t, Max>)
-  ->repeat_fully_bound<string<String<Chars...>>, Min, Max>;
+                   const std::integral_constant<index_t, Min>,
+                   const std::integral_constant<index_t, Max>)
+  ->repeat_fully_bound<one_string<String<Chars...>>, Min, Max>;
 
 //////////////////////////////////////////////////////////////
 
@@ -486,8 +546,8 @@ struct sequence
   constexpr sequence(const Target0, const Targets...) {}
 
   template<typename String,
-           size_t End = sizeof...(Targets),
-           size_t CurrentIndex = 0,
+           index_t End = sizeof...(Targets),
+           index_t CurrentIndex = 0,
            typename T0 = Target0,
            typename... Ts>
   constexpr auto parse(const String) const
@@ -516,13 +576,19 @@ struct sequence
     }
   }
 
+  template<template<typename...> typename Output>
+  constexpr auto generate(const Output<>) const
+  {
+    return generator(decltype(*this){}, Output<>{});
+  }
+
   constexpr auto operator!() const { return filter<sequence<Target0, Targets...>>{}; }
   constexpr auto operator~() const { return optional<sequence<Target0, Targets...>>{}; }
   constexpr auto operator+() const { return one_or_more<sequence<Target0, Targets...>>{}; }
   constexpr auto operator*() const { return zero_or_more<sequence<Target0, Targets...>>{}; }
 
-  template<size_t I>
-  constexpr auto operator[](const std::integral_constant<size_t, I>) const
+  template<index_t I>
+  constexpr auto operator[](const std::integral_constant<index_t, I>) const
   {
     return repeat<sequence<Target0, Targets...>, I>{};
   }
@@ -555,13 +621,19 @@ struct one_of
     return decltype(*this){}.template parse_impl<String, Target0, Targets...>();
   }
 
+  template<template<typename...> typename Output>
+  constexpr auto generate(const Output<>) const
+  {
+    return generator(decltype(*this){}, Output<>{});
+  }
+
   constexpr auto operator!() const { return filter<one_of<Target0, Targets...>>{}; }
   constexpr auto operator~() const { return optional<one_of<Target0, Targets...>>{}; }
   constexpr auto operator+() const { return one_or_more<one_of<Target0, Targets...>>{}; }
   constexpr auto operator*() const { return zero_or_more<one_of<Target0, Targets...>>{}; }
 
-  template<size_t I>
-  constexpr auto operator[](const std::integral_constant<size_t, I>) const
+  template<index_t I>
+  constexpr auto operator[](const std::integral_constant<index_t, I>) const
   {
     return repeat<one_of<Target0, Targets...>, I>{};
   }
@@ -569,11 +641,11 @@ struct one_of
 
 //////////////////////////////////////////////////////////////
 
-template<typename Target, template<typename, typename> typename Synth>
+template<typename Target, template<typename...> typename Output>
 struct generator
 {
   constexpr generator() {}
-  constexpr generator(const Target, const Synth<Auto, Auto>) {}
+  constexpr generator(const Target, const Output<>) {}
 
   template<typename String>
   constexpr auto parse(const String) const
@@ -581,72 +653,27 @@ struct generator
     constexpr auto target = Target{};
     constexpr auto string = String{};
     constexpr auto result = target.parse(string);
-    return result.set_generator(Synth<decltype(result.match()), decltype(result.tree())>{});
+    if constexpr (result.tree().size() == 0)
+      return result.generate(Output<decltype(result.match())>{});
+    else
+      return result.generate(result.tree().template apply<Output>());
   }
 
   constexpr auto disable() const { return Target{}; }
 
-  constexpr auto operator!() const { return filter<generator<Target, Synth>>{}; }
-  constexpr auto operator~() const { return optional<generator<Target, Synth>>{}; }
-  constexpr auto operator+() const { return one_or_more<generator<Target, Synth>>{}; }
-  constexpr auto operator*() const { return zero_or_more<generator<Target, Synth>>{}; }
+  constexpr auto operator!() const { return filter<generator<Target, Output>>{}; }
+  constexpr auto operator~() const { return optional<generator<Target, Output>>{}; }
+  constexpr auto operator+() const { return one_or_more<generator<Target, Output>>{}; }
+  constexpr auto operator*() const { return zero_or_more<generator<Target, Output>>{}; }
 
-  template<size_t I>
-  constexpr auto operator[](const std::integral_constant<size_t, I>) const
+  template<index_t I>
+  constexpr auto operator[](const std::integral_constant<index_t, I>) const
   {
-    return repeat<generator<Target, Synth>, I>{};
+    return repeat<generator<Target, Output>, I>{};
   }
 };
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-template<typename CharT, CharT... Chars>
-constexpr auto operator"" _filter()
-{
-  return filter<string<cstring<Chars...>>>{};
-}
-
-#define FILTER(string_literal) filter<string<decltype(CSTRING(string_literal))>>
-
-template<typename CharT, CharT... Chars>
-constexpr auto operator"" _before()
-{
-  return before<string<cstring<Chars...>>>{};
-}
-
-#define BEFORE(string_literal) before<string<decltype(CSTRING(string_literal))>>
-
-template<typename CharT, CharT... Chars>
-constexpr auto operator"" _string()
-{
-  return string<cstring<Chars...>>{};
-}
-
-#define STRING(string_literal) string<decltype(CSTRING(string_literal))>
-
-template<typename CharT, CharT... Chars>
-constexpr auto operator"" _zero_or_more()
-{
-  return zero_or_more<string<cstring<Chars...>>>{};
-}
-
-#define ZERO_OR_MORE(string_literal) zero_or_more<string<decltype(CSTRING(string_literal))>>
-
-template<typename CharT, CharT... Chars>
-constexpr auto operator"" _one_or_more()
-{
-  return one_or_more<string<cstring<Chars...>>>{};
-}
-
-#define ONE_OR_MORE(string_literal) one_or_more<string<decltype(CSTRING(string_literal))>>
-
-template<typename CharT, CharT... Chars>
-constexpr auto operator"" _optional()
-{
-  return optional<string<cstring<Chars...>>>{};
-}
-
-#define OPTIONAL(string_literal) optional<string<decltype(CSTRING(string_literal))>>
+//////////////////////////////////////////////////////////////////////////////////
 
 template<typename L, typename R>
 constexpr auto operator&(const L, const R)

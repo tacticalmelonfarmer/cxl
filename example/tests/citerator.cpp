@@ -4,14 +4,13 @@
 
 using namespace utility;
 using namespace literals;
+using namespace std;
 
 int
 main()
 {
-  constexpr auto test_string = CSTRING("Hello, World!");
-  static_assert(
-    std::is_same_v<decltype(test_string), cstring<'H', 'e', 'l', 'l', 'o', ',', ' ', 'W', 'o', 'r', 'l', 'd', '!'>>,
-    "fail");
+  constexpr auto test_string = STR("Hello, World!");
+  static_assert(test_string == cstring<'H', 'e', 'l', 'l', 'o', ',', ' ', 'W', 'o', 'r', 'l', 'd', '!'>{}, "fail");
   constexpr auto begin = test_string.begin();
   static_assert(*begin == 'H', "fail");
   constexpr auto end = test_string.end();

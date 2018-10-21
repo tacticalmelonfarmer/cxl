@@ -2,10 +2,6 @@ cmake_minimum_required(VERSION 3.7)
 
 project(utility LANGUAGES CXX)
 
-add_executable(callstack src/tests/callstack.cpp)
-target_include_directories(callstack PUBLIC include)
-target_compile_features(callstack PUBLIC cxx_std_17)
-
 add_executable(cintegral src/tests/cintegral.cpp)
 target_include_directories(cintegral PUBLIC include)
 target_compile_features(cintegral PUBLIC cxx_std_17)
@@ -18,7 +14,7 @@ add_executable(cparse src/tests/cparse.cpp)
 target_include_directories(cparse PUBLIC include)
 target_compile_features(cparse PUBLIC cxx_std_17)
 
-set_target_properties(callstack cintegral citerator cparse
+set_target_properties(cintegral citerator cparse
   PROPERTIES
   ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
   LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"

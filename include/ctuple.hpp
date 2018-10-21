@@ -4,7 +4,7 @@
 
 namespace utility {
 
-namespace detail {
+inline namespace detail {
 
 template<size_t Index, typename Type>
 struct ctuple_element
