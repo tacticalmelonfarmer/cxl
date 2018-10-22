@@ -4,7 +4,6 @@
 
 using namespace utility::literals;
 using namespace utility::parse;
-using utility::typelist;
 
 template<typename... Input>
 struct integer
@@ -21,7 +20,7 @@ struct floating
 template<typename... Input>
 struct number_list
 {
-  const typelist<Input...> input_list = {};
+  const utility::typelist<Input...> input_list = {};
   constexpr auto add() const { return (Input{}() + ...); }
 };
 
