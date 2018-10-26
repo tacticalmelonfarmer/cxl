@@ -1,26 +1,26 @@
-#include <cparse.hpp>
-#include <cstring.hpp>
-#include <utility.hpp>
+#include <cxl/parse.hpp>
+#include <cxl/string.hpp>
+#include <cxl/utility.hpp>
 
-using namespace utility::literals;
-using namespace utility::parse;
+using namespace cxl::literals;
+using namespace cxl::parse;
 
 template<typename... Input>
 struct integer
 {
-  constexpr auto operator()() const { return utility::cstoi(Input{}...); }
+  constexpr auto operator()() const { return cxl::stoi(Input{}...); }
 };
 
 template<typename... Input>
 struct floating
 {
-  constexpr auto operator()() const { return utility::cstof(Input{}...); }
+  constexpr auto operator()() const { return cxl::stof(Input{}...); }
 };
 
 template<typename... Input>
 struct number_list
 {
-  const utility::typelist<Input...> input_list = {};
+  const cxl::typelist<Input...> input_list = {};
   constexpr auto add() const { return (Input{}() + ...); }
 };
 
@@ -50,6 +50,6 @@ main()
 {
 
   constexpr auto result = number_list_p.parse(STR("1,2 ,3.14, 42"));
-  constexpr auto test = result.tree().largest_size();
+  constexpr auto test = result.tree();
   return 0;
 }

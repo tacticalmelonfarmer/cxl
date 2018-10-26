@@ -7,7 +7,7 @@
 #include <type_traits>
 #include <utility>
 
-namespace utility {
+namespace cxl {
 
 using index_t = long long signed;
 
@@ -33,7 +33,7 @@ struct ct_select<Index, T, Ts...>
 template<index_t... Indices>
 struct index_range
 {
-  constexpr auto size() { return std::integral_constant<index_t, sizeof...(Indices)>{}; }
+  constexpr auto size() const { return std::integral_constant<index_t, sizeof...(Indices)>{}; }
 };
 
 template<index_t Begin, index_t End, index_t Position = Begin, index_t... Result>
@@ -69,7 +69,7 @@ using select_t = typename ct_select<AtIndex, TypeList...>::type;
 
 template<auto N, auto E, index_t... Indices>
 constexpr auto
-cpow_impl(const index_range<Indices...>) -> double
+pow_impl(const index_range<Indices...>) -> double
 {
   constexpr float abs_pow = (1.0 * ... * (Indices, N));
   if constexpr (E > 0)
@@ -82,14 +82,14 @@ cpow_impl(const index_range<Indices...>) -> double
 
 template<auto N, auto E>
 constexpr auto
-cpow() -> double
+pow() -> double
 {
   if constexpr (N == 0)
     return 0.0;
   if constexpr (E > 0)
-    return cpow_impl<N, E>(make_index_range<0, E - 1>());
+    return pow_impl<N, E>(make_index_range<0, E - 1>());
   else
-    return cpow_impl<N, E>(make_index_range<0, E + 1>());
+    return pow_impl<N, E>(make_index_range<0, E + 1>());
 }
 
 template<class... Ints>
@@ -99,7 +99,7 @@ combine_digits_base10(index_t result, index_t int0, Ints... ints)
   if constexpr (sizeof...(Ints) == 0)
     return result + int0;
   else
-    return combine_digits_base10(result + (cpow<10, sizeof...(Ints)>() * int0), ints...);
+    return combine_digits_base10(result + (pow<10, sizeof...(Ints)>() * int0), ints...);
 }
 
 constexpr index_t

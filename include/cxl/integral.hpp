@@ -1,8 +1,8 @@
 #pragma once
 #include "utility.hpp"
 
-namespace utility {
-namespace literals {
+namespace cxl {
+inline namespace literals {
 
 /* template<typename Char, Char... Chars>
 constexpr auto operator"" _chr()
@@ -12,7 +12,7 @@ constexpr auto operator"" _chr()
 }  //c++20 hopefully*/
 
 template<char... Digits>
-constexpr auto operator"" _idx()
+constexpr auto operator"" _i()
 {
   return std::integral_constant<index_t, combine_digits_base10(0, parse_digit(Digits)...)>{};
 }

@@ -1,11 +1,11 @@
 #pragma once
 
-#include "cintegral.hpp"
-#include "citerator.hpp"
+#include "integral.hpp"
+#include "iterator.hpp"
 #include "utility.hpp"
 #include <type_traits>
 
-namespace utility {
+namespace cxl {
 
 template<typename... Ts>
 struct typelist;
@@ -186,8 +186,8 @@ struct typelist
   constexpr auto front() const { return select_t<0, Ts...>{}; }
   constexpr auto back() const { return select_t<m_end_index, Ts...>{}; }
 
-  constexpr auto begin() const { return citerator<typelist<Ts...>, 0>{}; }
-  constexpr auto end() const { return citerator<typelist<Ts...>, sizeof...(Ts)>{}; }
+  constexpr auto begin() const { return iterator<typelist<Ts...>, 0>{}; }
+  constexpr auto end() const { return iterator<typelist<Ts...>, sizeof...(Ts)>{}; }
 
 private:
   const index_t m_end_index = sizeof...(Ts) - 1;
