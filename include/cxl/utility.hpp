@@ -25,7 +25,7 @@ struct ct_select<0, T, Ts...>
 template<index_t Index, typename T, typename... Ts>
 struct ct_select<Index, T, Ts...>
 {
-  static_assert(Index < sizeof...(Ts) + 1, "parameter pack index out of bounds");
+  static_assert(Index <= sizeof...(Ts), "parameter pack index out of bounds");
   typedef typename ct_select<Index - 1, Ts...>::type type;
 };
 }

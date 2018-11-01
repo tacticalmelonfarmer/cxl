@@ -78,7 +78,7 @@ struct repeat_minimum;
 template<typename TargetParser, index_t I>
 struct repeat_maximum;
 
-template<typename Target, index_t Min, index_t Max>
+template<typename TargetParser, index_t Min, index_t Max>
 struct repeat_range;
 
 template<typename InitTargetParser, typename... TargetParsers>
@@ -87,7 +87,7 @@ struct sequence;
 template<typename InitTargetParser, typename... TargetParsers>
 struct one_of;
 
-template<typename Target, template<typename...> typename Output>
+template<typename TargetParser, template<typename...> typename Output>
 struct generator;
 
 /////////////////////////// parsers
@@ -120,6 +120,14 @@ struct one_string
       } else
         return parse_result<string<>, InputString, parse_status::failure, typelist<>>{};
     }
+  }
+
+  template<typename BeginIter, typename EndIter>
+  constexpr auto parse(const BeginIter, const EndIter) const
+  {
+    constexpr auto begin = BeginIter{};
+    constexpr auto end = EndIter{};
+    // implement cxl::distance for iterators
   }
 
   template<template<typename...> typename Output>

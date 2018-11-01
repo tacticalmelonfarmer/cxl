@@ -59,4 +59,9 @@ operator-(const std::integral_constant<U, Off>, const iterator<T, From>)
 {
   return iterator<T, From - Off>{};
 }
+
+template<typename T, size_t BeginIndex, size_t EndIndex>
+constexpr auto
+distance(const iterator<T, BeginIndex>, const iterator<T, EndIndex>)
+{}
 }

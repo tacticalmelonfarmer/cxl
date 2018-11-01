@@ -1,7 +1,3 @@
 .vscode/
 build/
-CMakeCache.txt
-CMakeFiles/
 .clang-format
-Makefile
-cmake_install.cmake
