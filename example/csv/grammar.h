@@ -15,19 +15,19 @@ token(const Target)
 template<typename... Input>
 struct integer
 {
-  constexpr auto operator()() const { return cxl::stoi(Input{}...); }
+  constexpr operator int() const { return cxl::stoi(Input{}...); }
 };
 
 template<typename... Input>
 struct floating
 {
-  constexpr auto operator()() const { return cxl::stof(Input{}...); }
+  constexpr operator float() const { return cxl::stof(Input{}...); }
 };
 
 template<typename... Input>
-struct number_list
+struct quoted_string
 {
-  constexpr auto add() const { return (Input{}() + ...); }
+  constexpr operator const char*() const { return (Input{}, ...); }
 };
 
 template<typename Target, typename Delimiter>
@@ -41,5 +41,7 @@ constexpr auto digit_p = one_char(STR("0123456789"));
 constexpr auto sign_p = one_char(STR("+-"));
 constexpr auto integer_p = (~sign_p & +digit_p).generate(integer<>{});
 constexpr auto floating_p = (~sign_p & +digit_p & one_char(STR(".")) & *digit_p).generate(floating<>{});
-constexpr auto number_p = floating_p | integer_p;
-constexpr auto number_list_p = token_list(number_p, one_char(STR(","))).generate(number_list<>{});
+constexpr auto quote_p = one_char(STR("'"));
+constexpr auto string_p = (quote_p & (*(!one_char(STR("'")))).generate(quoted_string<>{}) & quote_p);
+constexpr auto value_p = floating_p | integer_p | string_p;
+constexpr auto value_list_p = token_list(value_p, one_char(STR(",")));

@@ -119,19 +119,17 @@ strlen(const iterator<String, Begin>, const iterator<String, End> end)
 
 template<typename Target, typename String, index_t... Indices>
 constexpr auto
-match_impl(const Target, const String, const index_range<Indices...>)
+strmatch_impl(const Target, const String, const index_range<Indices...>)
 {
-  constexpr auto match_char = [](index_t index, auto target, auto string) -> index_t {
-    return decltype(target){}[index] == decltype(string){}[index] ? 1 : 0;
-  };
-  return std::integral_constant<index_t, (0 + ... + match_char(Indices, Target{}, String{}))>{};
+  constexpr auto match_char = [](index_t index) -> index_t { return Target{}[index] == String{}[index] ? 1 : 0; };
+  return std::integral_constant<index_t, (0 + ... + match_char(Indices))>{};
 }
 
 template<typename Target, typename String>
 constexpr auto
-match(const Target, const String)
+strmatch(const Target, const String)
 {
-  return match_impl(Target{}, String{}, make_index_range<0, Target{}.size - 1>());
+  return strmatch_impl(Target{}, String{}, make_index_range<0, Target{}.size() - 1>());
 }
 
 template<typename Target, typename String, typename Begin>

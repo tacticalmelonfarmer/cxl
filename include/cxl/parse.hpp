@@ -1,4 +1,5 @@
 #pragma once
+#include "integral.hpp"
 #include "string.hpp"
 #include "typelist.hpp"
 #include "utility.hpp"
@@ -13,30 +14,30 @@ enum class parse_status
   failure = 0
 };
 
-template<typename Match, typename Remainder, parse_status Status, typename TreeTL>
+template<typename Match, typename Remainder, parse_status Status, typename ParseTree = typelist<>>
 struct parse_result
 {
   constexpr auto match() const { return Match{}; }
   constexpr auto remainder() const { return Remainder{}; }
   constexpr bool status() const { return (bool)Status; }
-  constexpr auto tree() const { return TreeTL{}; }
+  constexpr auto tree() const { return ParseTree{}; }
   template<typename String>
   constexpr auto set_match(const String) const
   {
-    return parse_result<String, Remainder, Status, TreeTL>{};
+    return parse_result<String, Remainder, Status, ParseTree>{};
   }
   template<typename String>
   constexpr auto set_remainder(const String) const
   {
-    return parse_result<Match, String, Status, TreeTL>{};
+    return parse_result<Match, String, Status, ParseTree>{};
   }
   template<typename Generator>
   constexpr auto generate(const Generator) const
   {
     return parse_result<Match, Remainder, Status, typelist<Generator>>{};
   }
-  constexpr auto fail() const { return parse_result<Match, Remainder, parse_status::failure, TreeTL>{}; }
-  constexpr auto succeed() const { return parse_result<Match, Remainder, parse_status::success, TreeTL>{}; }
+  constexpr auto fail() const { return parse_result<Match, Remainder, parse_status::failure, ParseTree>{}; }
+  constexpr auto succeed() const { return parse_result<Match, Remainder, parse_status::success, ParseTree>{}; }
 };
 
 template<typename M1, typename R1, auto P1, typename T1, typename M2, typename R2, auto P2, typename T2>
@@ -87,6 +88,8 @@ struct sequence;
 template<typename InitTargetParser, typename... TargetParsers>
 struct one_of;
 
+struct anything;
+
 template<typename TargetParser, template<typename...> typename Output>
 struct generator;
 
@@ -104,30 +107,21 @@ struct one_string
     constexpr auto target_string = TargetString{};
     constexpr auto input_string = InputString{};
     if constexpr (target_string.size() > input_string.size()) {
-      return parse_result<string<>, InputString, parse_status::failure, typelist<>>{};
+      return parse_result<string<>, InputString, parse_status::failure>{};
     } else {
-      constexpr index_t size_of_match = match(target_string, input_string);
+      constexpr index_t size_of_match = strmatch(target_string, input_string);
       if constexpr (size_of_match == 0)
-        return parse_result<string<>, InputString, parse_status::failure, typelist<>>{};
+        return parse_result<string<>, InputString, parse_status::failure>{};
       if constexpr (size_of_match == target_string.size()) {
         if constexpr (input_string.begin() + target_string.size() == input_string.end())
-          return parse_result<TargetString, string<>, parse_status::success, typelist<>>{};
+          return parse_result<TargetString, string<>, parse_status::success>{};
         else
           return parse_result<TargetString,
                               decltype(substr(input_string.begin() + target_string.size(), input_string.end())),
-                              parse_status::success,
-                              typelist<>>{};
+                              parse_status::success>{};
       } else
-        return parse_result<string<>, InputString, parse_status::failure, typelist<>>{};
+        return parse_result<string<>, InputString, parse_status::failure>{};
     }
-  }
-
-  template<typename BeginIter, typename EndIter>
-  constexpr auto parse(const BeginIter, const EndIter) const
-  {
-    constexpr auto begin = BeginIter{};
-    constexpr auto end = EndIter{};
-    // implement cxl::distance for iterators
   }
 
   template<template<typename...> typename Output>
@@ -162,10 +156,9 @@ struct one_char
     if constexpr ((false || ... || (input_string[0] == target_string[Indices])))
       return parse_result<string<input_string[0]>,
                           decltype(substr(++input_string.begin(), input_string.end())),
-                          parse_status::success,
-                          typelist<>>{};
+                          parse_status::success>{};
     else
-      return parse_result<string<>, InputString, parse_status::failure, typelist<>>{};
+      return parse_result<string<>, InputString, parse_status::failure>{};
   }
 
   template<typename InputString>
@@ -206,9 +199,9 @@ struct before
     constexpr auto input_string = InputString{};
     constexpr auto result = TargetParser{}.parse(input_string);
     if constexpr (result.status())
-      return parse_result<string<>, InputString, parse_status::success, typelist<>>{};
+      return parse_result<string<>, InputString, parse_status::success>{};
     else
-      return parse_result<decltype(result.match()), InputString, parse_status::failure, typelist<>>{};
+      return parse_result<decltype(result.match()), InputString, parse_status::failure>{};
   }
 
   template<template<typename...> typename Output>
@@ -241,14 +234,13 @@ struct filter
   constexpr auto parse(const InputString) const
   {
     constexpr auto input_string = InputString{};
-    constexpr auto result = TargetParser{}.parse(input_string);
-    if constexpr (result.status())
-      return parse_result<decltype(result.match()), InputString, parse_status::failure, typelist<>>{};
+    constexpr auto target_result = TargetParser{}.parse(input_string);
+    if constexpr (target_result.status())
+      return parse_result<string<>, InputString, parse_status::failure>{};
     else
-      return parse_result<decltype(substr(input_string.begin(), input_string.begin())),
+      return parse_result<string<input_string[0]>,
                           decltype(substr(++input_string.begin(), input_string.end())),
-                          parse_status::success,
-                          typelist<>>{};
+                          parse_status::success>{};
   }
 
   template<template<typename...> typename Output>
@@ -284,7 +276,7 @@ struct optional
     if constexpr (result.status())
       return result;
     else
-      return parse_result<string<>, InputString, parse_status::success, typelist<>>{};
+      return parse_result<string<>, InputString, parse_status::success>{};
   }
 
   template<template<typename...> typename Output>
@@ -478,9 +470,9 @@ struct repeat_maximum
       if constexpr (result.match().size() <= (I * base.match().size()))
         return result;
       else
-        return parse_result<decltype(result.match()), InputString, parse_status::failure, typelist<>>{};
+        return parse_result<decltype(result.match()), InputString, parse_status::failure>{};
     } else
-      return parse_result<string<>, InputString, parse_status::success, typelist<>>{};
+      return parse_result<string<>, InputString, parse_status::success>{};
   }
 
   template<template<typename...> typename Output>
@@ -520,9 +512,9 @@ struct repeat_range
                     result.match().size() <= (Max * base.match().size()))
         return result;
       else
-        return parse_result<decltype(result.match()), InputString, parse_status::failure, typelist<>>{};
+        return parse_result<decltype(result.match()), InputString, parse_status::failure>{};
     } else
-      return parse_result<string<>, InputString, parse_status::success, typelist<>>{};
+      return parse_result<string<>, InputString, parse_status::success>{};
   }
 
   template<template<typename...> typename Output>
@@ -616,7 +608,7 @@ struct one_of
       if constexpr (result.status())
         return result;
       else
-        return parse_result<decltype(result.match()), InputString, parse_status::failure, typelist<>>{};
+        return parse_result<decltype(result.match()), InputString, parse_status::failure>{};
     } else
       return parse_impl<InputString, NextTargetParsers...>();
   }
@@ -642,6 +634,37 @@ struct one_of
   constexpr auto operator[](const std::integral_constant<index_t, I>) const
   {
     return repeat<one_of<InitTargetParser, TargetParsers...>, I>{};
+  }
+};
+
+struct anything
+{
+  constexpr anything() {}
+
+  template<typename InputString>
+  constexpr auto parse(const InputString) const
+  {
+    constexpr auto input_string = InputString{};
+    static_assert(input_string.size() > 0, "cxl::string<...> not big enough to hold anything");
+    return parse_result<string<input_string[0]>,
+                        decltype(substr(++input_string.begin(), input_string.end())),
+                        parse_status::success>{};
+  }
+
+  template<template<typename...> typename Output>
+  constexpr auto generate(const Output<>) const
+  {
+    return generator(decltype(*this){}, Output<>{});
+  }
+
+  constexpr auto operator~() const { return optional<anything>{}; }
+  constexpr auto operator+() const { return one_or_more<anything>{}; }
+  constexpr auto operator*() const { return zero_or_more<anything>{}; }
+
+  template<index_t I>
+  constexpr auto operator[](const std::integral_constant<index_t, I>) const
+  {
+    return repeat<anything, I>{};
   }
 };
 

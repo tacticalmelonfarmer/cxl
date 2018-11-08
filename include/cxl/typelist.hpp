@@ -193,4 +193,17 @@ private:
   const index_t m_end_index = sizeof...(Ts) - 1;
   const index_t m_invalid_index = sizeof...(Ts);
 };
+
+template<typename... Types>
+constexpr bool
+is_typelist(typelist<Types...>)
+{
+  return true;
+}
+
+constexpr bool
+is_typelist(...)
+{
+  return false;
+}
 }
