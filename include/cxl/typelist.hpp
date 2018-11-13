@@ -48,12 +48,6 @@ struct typelist<>
     return typelist<Deduced...>{};
   }
 
-  template<template<typename...> typename TL, typename... Deduced>
-  constexpr auto prepend(TL<Deduced...>) const
-  {
-    return typelist<Deduced...>{};
-  }
-
   template<template<typename...> typename ApplyTo>
   constexpr auto apply() const
   {
@@ -78,6 +72,17 @@ struct metaindexrange
   constexpr auto establish() const
   {
     return typelist<MetaTypes<Indices...>...>{};
+  }
+};
+
+template<typename T>
+struct emplacer
+{
+  constexpr emplacer() {}
+  template<typename... ArgTs>
+  constexpr auto operator()(ArgTs&&... arguments) const
+  {
+    return T(std::forward<ArgTs>(arguments)...);
   }
 };
 
@@ -181,6 +186,12 @@ struct typelist
   constexpr auto operator[](const std::integral_constant<index_t, Index>) const
   {
     return type_at(std::integral_constant<index_t, Index>{});
+  }
+
+  template<index_t Index>
+  constexpr auto emplace_type_at(const std::integral_constant<index_t, Index>) const
+  {
+    return emplacer<select_t<Index, Ts...>>{};
   }
 
   constexpr auto front() const { return select_t<0, Ts...>{}; }
