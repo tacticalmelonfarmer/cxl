@@ -19,9 +19,8 @@ to `std::integral_constant<...>`s.
 `cxl::iterator<...>` which can support any constexpr class with the following methods:
 * `constexpr auto begin() const`
 * `constexpr auto end() const`
-* `template<typename T, T value>`
-  
-  `constexpr auto operator[](std::integral_constant<T,value>) const`
+* `template<typename T, T value>`  
+`constexpr auto operator[](std::integral_constant<T,value>) const`
 
 ## String
 *include/cxl/string.hpp* contains a string class `cxl::string<...>` with 
