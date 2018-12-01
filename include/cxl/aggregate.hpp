@@ -15,12 +15,14 @@ struct size_greater
 {
   static constexpr auto size = sizeof(T);
 };
+
 template<typename T, typename U>
 constexpr auto
 operator>(const size_greater<T>, const size_greater<U>)
 {
   (sizeof(T) >= sizeof(U)) ? size_greater<T>{} : size_greater<U>{};
 }
+
 template<typename... Types>
 struct max_size
 {
@@ -62,6 +64,16 @@ is_brace_constructible() -> decltype(is_brace_constructible_(std::make_index_seq
 
 template<size_t N>
 using size = std::integral_constant<size_t, N>;
+
+template<typename A, typename... Ts>
+constexpr auto
+make_tuple(Ts&&... Values)
+{
+  if constexpr (std::is_rvalue_reference_v<A>)
+    return std::make_tuple(std::forward<Ts>(Values)...);
+  else if constexpr (std::is_lvalue_reference_v<A>)
+    return std::forward_as_tuple(std::forward<Ts>(Values)...);
+}
 }
 
 template<typename T, size_t Count = 0>
@@ -78,56 +90,82 @@ template<typename T>
 constexpr auto
 destructure(T&& pod)
 {
-  constexpr auto arity = aggregate_arity<T>();
+  constexpr auto arity = aggregate_arity<std::remove_reference_t<T>>();
   if constexpr (arity == 0)
     return std::tuple<>{};
+
   if constexpr (arity == 1) {
     auto&& [v1] = pod;
-    return std::forward_as_tuple(v1);
+    return make_tuple<decltype(pod)>(v1);
   }
   if constexpr (arity == 2) {
     auto&& [v1, v2] = pod;
-    return std::forward_as_tuple(v1, v2);
+    return make_tuple<decltype(pod)>(v1, v2);
   }
   if constexpr (arity == 3) {
     auto&& [v1, v2, v3] = pod;
-    return std::forward_as_tuple(v1, v2, v3);
+    return make_tuple<decltype(pod)>(v1, v2, v3);
   }
   if constexpr (arity == 4) {
     auto&& [v1, v2, v3, v4] = pod;
-    return std::forward_as_tuple(v1, v2, v3, v4);
+    return make_tuple<decltype(pod)>(v1, v2, v3, v4);
   }
   if constexpr (arity == 5) {
     auto&& [v1, v2, v3, v4, v5] = pod;
-    return std::forward_as_tuple(v1, v2, v3, v4, v5);
+    return make_tuple<decltype(pod)>(v1, v2, v3, v4, v5);
   }
   if constexpr (arity == 6) {
     auto&& [v1, v2, v3, v4, v5, v6] = pod;
-    return std::forward_as_tuple(v1, v2, v3, v4, v5, v6);
+    return make_tuple<decltype(pod)>(v1, v2, v3, v4, v5, v6);
   }
+
   if constexpr (arity == 7) {
     auto&& [v1, v2, v3, v4, v5, v6, v7] = pod;
-    return std::forward_as_tuple(v1, v2, v3, v4, v5, v6, v7);
+    return make_tuple<decltype(pod)>(v1, v2, v3, v4, v5, v6, v7);
   }
   if constexpr (arity == 8) {
     auto&& [v1, v2, v3, v4, v5, v6, v7, v8] = pod;
-    return std::forward_as_tuple(v1, v2, v3, v4, v5, v6, v7, v8);
+    return make_tuple<decltype(pod)>(v1, v2, v3, v4, v5, v6, v7, v8);
   }
   if constexpr (arity == 9) {
     auto&& [v1, v2, v3, v4, v5, v6, v7, v8, v9] = pod;
-    return std::forward_as_tuple(v1, v2, v3, v4, v5, v6, v7, v8, v9);
+    return make_tuple<decltype(pod)>(v1, v2, v3, v4, v5, v6, v7, v8, v9);
   }
   if constexpr (arity == 10) {
     auto&& [v1, v2, v3, v4, v5, v6, v7, v8, v9, v10] = pod;
-    return std::forward_as_tuple(v1, v2, v3, v4, v5, v6, v7, v8, v9, v10);
+    return make_tuple<decltype(pod)>(v1, v2, v3, v4, v5, v6, v7, v8, v9, v10);
   }
   if constexpr (arity == 11) {
     auto&& [v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11] = pod;
-    return std::forward_as_tuple(v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11);
+    return make_tuple<decltype(pod)>(v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11);
   }
   if constexpr (arity == 12) {
     auto&& [v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12] = pod;
-    return std::forward_as_tuple(v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12);
+    return make_tuple<decltype(pod)>(v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12);
+  }
+  if constexpr (arity == 13) {
+    auto&& [v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13] = pod;
+    return make_tuple<decltype(pod)>(v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13);
+  }
+  if constexpr (arity == 14) {
+    auto&& [v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14] = pod;
+    return make_tuple<decltype(pod)>(v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14);
+  }
+  if constexpr (arity == 15) {
+    auto&& [v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15] = pod;
+    return make_tuple<decltype(pod)>(v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15);
+  }
+  if constexpr (arity == 13) {
+    auto&& [v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13] = pod;
+    return make_tuple<decltype(pod)>(v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13);
+  }
+  if constexpr (arity == 14) {
+    auto&& [v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14] = pod;
+    return make_tuple<decltype(pod)>(v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14);
+  }
+  if constexpr (arity == 15) {
+    auto&& [v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15] = pod;
+    return make_tuple<decltype(pod)>(v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15);
   }
 }
 }
