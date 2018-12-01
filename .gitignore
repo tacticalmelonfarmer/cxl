@@ -1,3 +1,5 @@
 .vscode/
 build/
 .clang-format
+/.vs/cxl/v15
+/.vs

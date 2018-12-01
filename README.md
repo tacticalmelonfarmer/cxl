@@ -42,9 +42,11 @@ transforms for empty typelists `typelist<>` include:
 * append
   * splices a typlist onto the end, this case also the beginning
 * apply
-  * applies the types to a given template, which is empty parameter list
+  * applies the types to a given template, which is empty argument list
+* applied_emplacer
+  * applies types to a template and returns an emplacer for that template
 
-trasforms/accessors for non-empty typelists include:
+transforms/accessors for non-empty typelists include:
 * subrange
   * returns a range of types indicated by two inclusive indices
 * splice
@@ -55,13 +57,15 @@ trasforms/accessors for non-empty typelists include:
   * expands a typelist into the beginning of this typelist
 * apply
   * expands this typelist into a given user-template
+* applied_emplacer
+  * applies types to a template and returns an emplacer for that template
 * index_of
   * for a given type, returns index of first occurence
 * type_at
   * returns a default constructed type indicated by a given index
 * operator[]
   * shortcut for type_at, also allows iterating
-* emplace_type_at
+* type_emplacer
   * similar to type_at, but returns a proxy constructor for non default constructible types
 * front
   * returns a default constructed instance of the first type

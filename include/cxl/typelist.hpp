@@ -28,32 +28,6 @@ struct tl_helper<T0, Ts...>
   using head_type = T0;
   using next_types = typelist<Ts...>;
 };
-}
-
-template<>
-struct typelist<>
-{
-  using head_type = void;
-  using next_types = void;
-
-  constexpr auto size() const { return std::integral_constant<index_t, 0>{}; }
-  constexpr auto largest_alignment() const { return std::integral_constant<index_t, 0>{}; }
-  constexpr auto smallest_alignment() const { return std::integral_constant<index_t, 0>{}; }
-  constexpr auto largest_size() const { return std::integral_constant<index_t, 0>{}; }
-  constexpr auto smallest_size() const { return std::integral_constant<index_t, 0>{}; }
-
-  template<template<typename...> typename TL, typename... Deduced>
-  constexpr auto append(TL<Deduced...>) const
-  {
-    return typelist<Deduced...>{};
-  }
-
-  template<template<typename...> typename ApplyTo>
-  constexpr auto apply() const
-  {
-    return ApplyTo<>{};
-  }
-};
 
 template<template<typename...> typename... MetaTypes>
 struct metatypelist
@@ -80,9 +54,40 @@ struct emplacer
 {
   constexpr emplacer() {}
   template<typename... ArgTs>
-  constexpr auto operator()(ArgTs&&... arguments) const
+  constexpr T operator()(ArgTs&&... arguments) const
   {
     return T(std::forward<ArgTs>(arguments)...);
+  }
+};
+}
+
+template<>
+struct typelist<>
+{
+  using head_type = void;
+  using next_types = void;
+
+  constexpr auto size() const { return std::integral_constant<index_t, 0>{}; }
+  constexpr auto largest_alignment() const { return std::integral_constant<index_t, 0>{}; }
+  constexpr auto smallest_alignment() const { return std::integral_constant<index_t, 0>{}; }
+  constexpr auto largest_size() const { return std::integral_constant<index_t, 0>{}; }
+  constexpr auto smallest_size() const { return std::integral_constant<index_t, 0>{}; }
+
+  template<template<typename...> typename TL, typename... Deduced>
+  constexpr auto append(TL<Deduced...>) const
+  {
+    return typelist<Deduced...>{};
+  }
+
+  template<template<typename...> typename ApplyTo>
+  constexpr auto apply() const
+  {
+    return ApplyTo<>{};
+  }
+  template<template<typename...> typename ApplyTo>
+  constexpr auto applied_emplacer() const
+  {
+    return emplacer<ApplyTo<>>{};
   }
 };
 
@@ -170,6 +175,12 @@ struct typelist
     return ApplyTo<Ts...>{};
   }
 
+  template<template<typename...> typename ApplyTo>
+  constexpr auto applied_emplacer() const
+  {
+    return emplacer<ApplyTo<Ts...>>{};
+  }
+
   template<typename Type>
   constexpr auto index_of() const
   {
@@ -189,7 +200,7 @@ struct typelist
   }
 
   template<index_t Index>
-  constexpr auto emplace_type_at(const std::integral_constant<index_t, Index>) const
+  constexpr auto type_emplacer(const std::integral_constant<index_t, Index>) const
   {
     return emplacer<select_t<Index, Ts...>>{};
   }
