@@ -36,7 +36,7 @@ struct index_range
   constexpr auto size() const { return std::integral_constant<index_t, sizeof...(Indices)>{}; }
 };
 
-/* template<index_t Begin, index_t End, index_t Position = Begin, index_t... Result>
+template<index_t Begin, index_t End, index_t Position = Begin, index_t... Result>
 constexpr auto
 make_index_range()
 {
@@ -52,9 +52,9 @@ make_index_range()
       return index_range<Result..., Position>{};
   } else
     return index_range<Position>{};
-} */
+}
 
-template<index_t First, index_t Last, index_t... Result>
+/*template<index_t First, index_t Last, index_t... Result>
 constexpr auto
 make_index_range()
 {
@@ -66,12 +66,12 @@ make_index_range()
     constexpr index_t previous = (Result, ...);
     if constexpr (previous == Last)
       return index_range<Result...>{};
-    if constexpr (First < Last)
+    else if constexpr (First < Last)
       return make_index_range<First, Last, Result..., previous + 1>();
-    if constexpr (First > Last)
+    else if constexpr (First > Last)
       return make_index_range<First, Last, Result..., previous - 1>();
   }
-}
+}*/
 
 template<typename Find, typename T0, typename... Ts, index_t Index>
 constexpr auto

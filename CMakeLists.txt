@@ -2,13 +2,12 @@ cmake_minimum_required(VERSION 3.10)
 
 project(cxl LANGUAGES CXX)
 
-add_executable(csv example/csv/main.cpp)
+add_subdirectory(tools)
+
+add_executable(csv examples/csv/main.cpp)
 target_include_directories(csv PUBLIC include)
 target_compile_features(csv PUBLIC cxx_std_17)
 
-set_target_properties(csv
-  PROPERTIES
-  ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
-  LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
-  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
-)
+add_executable(fake_class examples/fake_class/main.cpp)
+target_include_directories(fake_class PUBLIC include)
+target_compile_features(fake_class PUBLIC cxx_std_17)
