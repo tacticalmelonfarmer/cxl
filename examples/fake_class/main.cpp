@@ -11,6 +11,7 @@ struct agg
 int
 main() 
 {
-  agg my_agg{ 0, 1, 2, [](auto i) { return i + 1; } };
+  agg my_agg{ 0, 1, 2, [](auto i) { return i - 1; } };
   auto my_tup = cxl::destructure(my_agg);
+  return std::get<3>(my_tup)(std::get<1>(my_tup));
 }

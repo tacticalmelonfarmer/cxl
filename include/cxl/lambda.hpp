@@ -13,8 +13,8 @@ template<typename Return, typename... Parameters>
 struct Iwrap_lambda
 {
   virtual ~Iwrap_lambda() {}
-  virtual Return operator()(Parameters&&...) = 0;
-  virtual Return operator()(Parameters&&...) const = 0;
+  virtual Return operator()(Parameters...) = 0;
+  virtual Return operator()(Parameters...) const = 0;
 };
 
 template<typename Lambda, typename Return, typename... Parameters>
@@ -24,11 +24,11 @@ struct wrap_lambda final : public Iwrap_lambda<Return, Parameters...>
     : lambda_(std::move(lambda))
   {}
 
-  Return operator()(Parameters&&... arguments) override { return lambda_(std::forward<Parameters>(arguments)...); }
+  Return operator()(Parameters... arguments) override { return lambda_(arguments...); }
 
-  Return operator()(Parameters&&... arguments) const override
+  Return operator()(Parameters... arguments) const override
   {
-    return lambda_(std::forward<Parameters>(arguments)...);
+    return lambda_(arguments...);
   }
 
 private:
@@ -50,9 +50,11 @@ struct wrap<Return(Parameters...)>
 
   ~wrap() { access()->~Iwrap_lambda<Return, Parameters...>(); }
 
-  Return operator()(Parameters&&... arguments) { return access()->operator()(std::forward<Parameters>(arguments)...); }
+  template<typename... UParameters>
+  Return operator()(UParameters&&... arguments) { return access()->operator()(std::forward<Parameters>(arguments)...); }
 
-  Return operator()(Parameters&&... arguments) const
+  template<typename... UParameters>
+  Return operator()(UParameters&&... arguments) const
   {
     return access()->operator()(std::forward<Parameters>(arguments)...);
   }

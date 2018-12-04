@@ -1,5 +1,8 @@
 build/
 .clang-format
-/.vs/cxl/v15
-/.vs
-CMakeSettings.json
+.vs/
+include/cxl/aggregate.generated.h
+srcgen_cxl_aggregate
+srcgen_cxl_aggregate.exe
+srcgen_cxl_aggregate.ilk
+srcgen_cxl_aggregate.pdb

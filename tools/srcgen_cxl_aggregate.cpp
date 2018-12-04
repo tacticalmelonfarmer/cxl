@@ -1,8 +1,6 @@
 #include <fstream>
 #include <string>
 
-#include <iostream>
-
 template<typename File>
 void
 write_for_N(int N, File& file)
@@ -23,7 +21,7 @@ write_for_N(int N, File& file)
 int
 main(int argc, char* argv[])
 {
-  if (std::ofstream file("../include/cxl/aggregate.generated.h", std::ios::out); argc > 1) {
+  if (std::ofstream file("../include/cxl/aggregate.generated.h"); argc > 1) {
     int max = std::stoi(argv[1]);
     for (int n = 1; n <= max; ++n) {
       write_for_N(n, file);
