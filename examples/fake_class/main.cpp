@@ -12,5 +12,5 @@ int
 main() 
 {
   agg my_agg{ 0, 1, 2, [](auto i) { return i + 1; } };
-  return std::get<0>(cxl::destructure(my_agg));
+  auto my_tup = cxl::destructure(my_agg);
 }

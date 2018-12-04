@@ -1,14 +1,13 @@
-#include <filesystem>
 #include <fstream>
 #include <string>
+
+#include <iostream>
 
 template<typename File>
 void
 write_for_N(int N, File& file)
 {
-  file << "if constexpr (arity == ";
-  file << N;
-  file << ") {\n  auto&& ["; 
+  file << "if constexpr (arity == " << N << ") {\n  auto&& ["; 
   std::string values;
   if (N >= 1) {
     values = "v1";
@@ -24,9 +23,8 @@ write_for_N(int N, File& file)
 int
 main(int argc, char* argv[])
 {
-  std::filesystem::path path(argv[1]), filename("aggregate.generated.h");
-  if (std::ofstream file(path / filename); argc == 3 && file.good()) {
-    int max = std::stoi(argv[2]);
+  if (std::ofstream file("../include/cxl/aggregate.generated.h", std::ios::out); argc > 1) {
+    int max = std::stoi(argv[1]);
     for (int n = 1; n <= max; ++n) {
       write_for_N(n, file);
     }
