@@ -3,6 +3,12 @@
 #include <type_traits>
 #include <utility>
 
+namespace cxl {
+
+namespace lambda {
+
+inline namespace detail {
+
 template<typename Return, typename... Parameters>
 struct Iwrap_lambda
 {
@@ -28,8 +34,8 @@ struct wrap_lambda final : public Iwrap_lambda<Return, Parameters...>
 private:
   Lambda lambda_;
 };
+}
 
-namespace lambda {
 template<typename CallSign>
 struct wrap;
 
@@ -56,4 +62,5 @@ private:
   auto access() const { return reinterpret_cast<const Iwrap_lambda<Return, Parameters...>*>(&wrapper_); }
   std::aligned_storage_t<8> wrapper_;
 };
+}
 }

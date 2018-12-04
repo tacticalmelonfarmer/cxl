@@ -24,9 +24,9 @@ write_for_N(int N, File& file)
 int
 main(int argc, char* argv[])
 {
-  std::filesystem::path path("../include/cxl/aggregate.generated.h");
-  if (std::ofstream file(path); argc == 2 && file.good()) {
-    int max = std::stoi(argv[1]);
+  std::filesystem::path path(argv[1]), filename("aggregate.generated.h");
+  if (std::ofstream file(path / filename); argc == 3 && file.good()) {
+    int max = std::stoi(argv[2]);
     for (int n = 1; n <= max; ++n) {
       write_for_N(n, file);
     }

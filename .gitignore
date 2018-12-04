@@ -2,3 +2,4 @@ build/
 .clang-format
 /.vs/cxl/v15
 /.vs
+CMakeSettings.json
