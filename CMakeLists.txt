@@ -27,7 +27,7 @@ target_include_directories(csv PUBLIC include)
 target_compile_features(csv PUBLIC cxx_std_17)
 
 ## this example demos the lambda and aggregate sublibraries
-add_executable(fake_class examples/fake_class/main.cpp)
-add_dependencies(fake_class tools)
-target_include_directories(fake_class PUBLIC include)
-target_compile_features(fake_class PUBLIC cxx_std_17)
+add_executable(component examples/component/main.cpp)
+add_dependencies(component tools)
+target_include_directories(component PUBLIC include)
+target_compile_features(component PUBLIC cxx_std_17)

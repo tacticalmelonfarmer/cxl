@@ -1,8 +1,9 @@
 build/
 .clang-format
-.vs/
+.vscode/
 include/cxl/aggregate.generated.h
 srcgen_cxl_aggregate
 srcgen_cxl_aggregate.exe
 srcgen_cxl_aggregate.ilk
 srcgen_cxl_aggregate.pdb
+srcgen_cxl_aggregate.exe.manifest
