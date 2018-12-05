@@ -1,4 +1,5 @@
 #pragma once
+#include <functional>
 #include <new>
 #include <type_traits>
 #include <utility>
@@ -80,16 +81,24 @@ struct wrap<Return(Parameters...)>
 private:
   auto access() { return reinterpret_cast<Iwrap_lambda<Return, Parameters...>*>(&wrapper_); }
   auto access() const { return reinterpret_cast<const Iwrap_lambda<Return, Parameters...>*>(&wrapper_); }
-  std::aligned_storage_t<8> wrapper_;
+  std::aligned_storage_t<16> wrapper_;
   bool empty_;
 };
 
 template<typename Lambda>
-constexpr decltype(auto)
+constexpr auto&&
 ctor(Lambda&& lambda)
 {
-  lambda();
-  return (lambda);
+  struct local_t : Lambda
+  {
+    using Lambda::operator();
+    local_t(Lambda&& _)
+      : Lambda(_)
+    {
+      std::invoke(*this);
+    }
+  } local(std::forward<Lambda>(lambda));
+  return local;
 }
 
 template<typename Lambda>
@@ -98,11 +107,11 @@ dtor(Lambda&& lambda)
 {
   struct local_t : Lambda
   {
+    using Lambda::operator();
     local_t(Lambda&& _)
       : Lambda(_)
     {}
-    using Lambda::operator();
-    ~local_t() { (*this)(); }
+    ~local_t() { std::invoke(*this); }
   } local(std::forward<Lambda>(lambda));
   return local;
 }

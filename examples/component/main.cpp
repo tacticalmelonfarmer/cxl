@@ -24,8 +24,6 @@ struct managed_component
 int
 main()
 {
-  using std::get;
-
   component accumulator{ statistic{ 0, 0 }, [&](auto input) {
                           accumulator.value.sum += input;
                           return accumulator.value.sum;
