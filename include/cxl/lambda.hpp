@@ -38,6 +38,11 @@ private:
 };
 }
 
+struct ctor
+{};
+struct dtor
+{};
+
 template<typename CallSign>
 struct wrap;
 
@@ -51,12 +56,11 @@ struct wrap<Return(Parameters...)>
   template<typename Lambda>
   wrap(Lambda&& lambda)
   {
-    auto ptr = access();
-    new (ptr) wrap_lambda<Lambda, Return, Parameters...>(std::forward<Lambda>(lambda));
+    new (access()) wrap_lambda<Lambda, Return, Parameters...>(std::forward<Lambda>(lambda));
     empty_ = false;
   }
 
-  ~wrap()
+  virtual ~wrap()
   {
     if (!empty_)
       access()->~Iwrap_lambda<Return, Parameters...>();
@@ -85,35 +89,22 @@ private:
   bool empty_;
 };
 
-template<typename Lambda>
-constexpr auto&&
-ctor(Lambda&& lambda)
+template<>
+struct wrap<ctor> final : public wrap<void()>
 {
-  struct local_t : Lambda
+  template<typename Lambda>
+  wrap(Lambda&& lambda)
+    : wrap<void()>(std::forward<Lambda>(lambda))
   {
-    using Lambda::operator();
-    local_t(Lambda&& _)
-      : Lambda(_)
-    {
-      std::invoke(*this);
-    }
-  } local(std::forward<Lambda>(lambda));
-  return local;
-}
+    std::invoke(*this);
+  }
+};
 
-template<typename Lambda>
-constexpr auto&&
-dtor(Lambda&& lambda)
+template<>
+struct wrap<dtor> final : public wrap<void()>
 {
-  struct local_t : Lambda
-  {
-    using Lambda::operator();
-    local_t(Lambda&& _)
-      : Lambda(_)
-    {}
-    ~local_t() { std::invoke(*this); }
-  } local(std::forward<Lambda>(lambda));
-  return local;
-}
+  using wrap<void()>::wrap;
+  ~wrap() { std::invoke(*this); }
+};
 }
 }

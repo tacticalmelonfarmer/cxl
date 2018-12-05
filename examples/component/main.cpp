@@ -17,8 +17,8 @@ struct managed_component
 {
   statistic value;
   cxl::lambda::wrap<int(int)> method;
-  cxl::lambda::wrap<void()> constructor;
-  cxl::lambda::wrap<void()> destructor;
+  cxl::lambda::wrap<cxl::lambda::ctor> constructor;
+  cxl::lambda::wrap<cxl::lambda::dtor> destructor;
 };
 
 int
@@ -38,12 +38,12 @@ main()
 
   managed_component config{ statistic{ 0, 0 },
                             [&](auto input) { return 0; },
-                            cxl::lambda::ctor([&] {
+                            [&] {
                               config.value.sum = 4;
                               config.value.data_points = 20;
                               std::cout << "hello!\n";
-                            }),
-                            cxl::lambda::dtor([&] { std::cout << "goodbye!\n"; }) };
+                            },
+                            [&] { std::cout << "goodbye!\n"; } };
 
   return 0;
 }
