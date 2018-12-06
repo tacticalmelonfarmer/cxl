@@ -25,9 +25,4 @@ add_custom_target(tools
 add_executable(csv examples/csv/main.cpp)
 target_include_directories(csv PUBLIC include)
 target_compile_features(csv PUBLIC cxx_std_17)
-
-## this example demos the lambda and aggregate sublibraries
-add_executable(component examples/component/main.cpp)
-add_dependencies(component tools)
-target_include_directories(component PUBLIC include)
-target_compile_features(component PUBLIC cxx_std_17)
+add_dependencies(csv tools) # this forces our code generator to be compiled and called
