@@ -46,6 +46,9 @@ struct dtor
 template<typename CallSign>
 struct wrap;
 
+/** wrap< Return ( Parameters... ) >
+ * this class wraps/holds a lambda whose return type is {Return} and parameters are {Parameters...}
+ */
 template<typename Return, typename... Parameters>
 struct wrap<Return(Parameters...)>
 {
@@ -89,22 +92,31 @@ private:
   bool empty_;
 };
 
+/** wrap< ctor > wraps a void-return lambda with no parameters
+ * the wrapped lambda is not arbitrarily callable
+ * the wrapped lambda is called once upon construction
+ */
 template<>
-struct wrap<ctor> final : public wrap<void()>
+struct wrap<ctor> final : private wrap<void()>
 {
+  using wrap<void()>::wrap;
   template<typename Lambda>
   wrap(Lambda&& lambda)
     : wrap<void()>(std::forward<Lambda>(lambda))
   {
-    std::invoke(*this);
+    std::invoke(static_cast<wrap<void()>&>(*this));
   }
 };
 
+/** wrap< dtor > wraps a void-return lambda with no parameters
+ * the wrapped lambda is not arbitrarily callable
+ * the wrapped lambda is called once upon destruction
+ */
 template<>
-struct wrap<dtor> final : public wrap<void()>
+struct wrap<dtor> final : private wrap<void()>
 {
   using wrap<void()>::wrap;
-  ~wrap() { std::invoke(*this); }
+  ~wrap() { std::invoke(static_cast<wrap<void()>&>(*this)); }
 };
 }
 }
