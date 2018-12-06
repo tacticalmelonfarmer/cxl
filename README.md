@@ -37,35 +37,50 @@ which has a few transform functions and different
 ways to apply/expand a typelist into a user template. 
 It is compatible with the iterator sublibrary.
 
-transforms for empty typelists `typelist<>` include:
+methods for empty typelists include:
+* subrange
+  * **compile-time error**: cannot get subrange of empty typelist
+* insert
+  * expands another typelist into this typelist at given index (**must be index 0**)
 * append
-  * splices a typlist onto the end, this case also the beginning
-* apply
-  * applies the types to a given template, which is empty argument list
+  * expands a typelist into this
+* prepend
+  * expands a typelist into this
+* erase
+  * **compile-time error**: cannot erase types from an empty typelist
 * applied_emplacer
   * applies types to a template and returns an emplacer for that template
+* index_of
+  * **compile-time error**: no types to get index of in empty typelist
+* type_emplacer
+  * **compile-time error**: no types in empty typelist to emplace
+* operator[]
+  * **compile-time error**: no types in empty typelist to emplace
+* front
+  * **compile-time error**: empty typelist has no front
+* back
+  * **compile-time error**: empty typelist has no back
 
-transforms/accessors for non-empty typelists include:
+methods for non-empty typelists include:
 * subrange
   * returns a range of types indicated by two inclusive indices
-* splice
+* insert
   * expands another typelist into this typelist at given index
 * append
   * expands a typelist into the end of this typelist
 * prepend
   * expands a typelist into the beginning of this typelist
-* apply
-  * expands this typelist into a given user-template
+* erase
+  * returns a typelist, with type at given index removed
+  * returns a typelist, with types between given indices removed
 * applied_emplacer
-  * applies types to a template and returns an emplacer for that template
+  * applies types to a templated class and returns an emplacer for that class
 * index_of
   * for a given type, returns index of first occurence
-* type_at
-  * returns a default constructed type indicated by a given index
-* operator[]
-  * shortcut for type_at, also allows iterating
 * type_emplacer
-  * similar to type_at, but returns a proxy constructor for non default constructible types
+  * returns a proxy constructor for a type in this typelist
+* operator[]
+  * shortcut for type_emplacer, also allows iterating
 * front
   * returns a default constructed instance of the first type
 * back
