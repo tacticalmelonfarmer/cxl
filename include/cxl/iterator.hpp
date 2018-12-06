@@ -7,10 +7,7 @@ namespace cxl {
 template<typename T, index_t Index>
 struct iterator
 {
-  constexpr auto index() const
-  {
-    return std::integral_constant<index_t, Index>{};)
-  }
+  constexpr auto index() const { return std::integral_constant<index_t, Index>{}; }
 
   constexpr auto operator*() const { return T{}[std::integral_constant<size_t, Index>{}]; }
   constexpr auto operator++() const
@@ -39,8 +36,11 @@ template<typename T, index_t From, typename U, U Off>
 constexpr auto
 operator+(const iterator<T, From>, const std::integral_constant<U, Off>)
 {
-  static_assert((From + Off) < T{}.end().index(), "iterator: index out of bounds");
-  return iterator<T, From + Off>{};
+  // static_assert((From + Off) < T{}.end().index(), "iterator: index out of bounds");
+  if constexpr ((From + Off) < T{}.end().index())
+    return iterator<T, From + Off>{};
+  else
+    return T{}.end();
 }
 
 template<typename T, index_t From, typename U, U Off>

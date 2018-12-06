@@ -32,8 +32,13 @@ struct typelist_info<T0, Ts...>
 template<template<typename...> typename... MetaTypes>
 struct metatypelist
 {
-  template<typename TL, typename... Types>
-  constexpr auto establish(TL<Types...>) const
+  template<template<typename> typename TL, typename... Types>
+  constexpr auto establish_one_for_each(TL<Types...>) const
+  {
+    return typelist<MetaTypes<Types>...>{};
+  }
+  template<template<typename> typename TL, typename... Types>
+  constexpr auto establish_all_for_each(TL<Types...>) const
   {
     return typelist<MetaTypes<Types...>...>{};
   }
@@ -42,8 +47,13 @@ struct metatypelist
 template<template<index_t...> typename... MetaTypes>
 struct metaindexrange
 {
-  template<typename IS, index_t... Indices>
-  constexpr auto establish(IS<Indices...>) const
+  template<template<index_t> typename IS, index_t... Indices>
+  constexpr auto establish_one_for_each(IS<Indices...>) const
+  {
+    return typelist<MetaTypes<Indices>...>{};
+  }
+  template<template<index_t> typename IS, index_t... Indices>
+  constexpr auto establish_all_for_each(IS<Indices...>) const
   {
     return typelist<MetaTypes<Indices...>...>{};
   }
@@ -102,7 +112,8 @@ struct typelist<>
     return typelist<Deduced...>{};
   }
 
-  constexpr auto erase(...) const
+  template<typename Error>
+  constexpr Error erase(...) const
   {
     static_assert(false, "cannot erase types from an empty typelist");
     return error{};
@@ -114,14 +125,15 @@ struct typelist<>
     return emplacer<ApplyTo<>>{};
   }
 
-  template<typename Type>
-  constexpr auto index_of() const
+  template<typename Type, typename Error>
+  constexpr Error index_of() const
   {
     static_assert(false, "no types to get index of in empty typelist");
     return error{};
   }
 
-  constexpr auto type_emplacer(...) const
+  template<typename Error>
+  constexpr Error type_emplacer(...) const
   {
     static_assert(false, "no types in empty typelist to emplace");
     return error{};
@@ -133,20 +145,22 @@ struct typelist<>
     return type_emplacer();
   }
 
-  constexpr auto front() const
+  template<typename Error>
+  constexpr Error front() const
   {
     static_assert(false, "empty typelist has no front");
     return error{};
   }
 
-  constexpr auto back() const
+  template<typename Error>
+  constexpr Error back() const
   {
     static_assert(false, "empty typelist has no back");
     return error{};
   }
 
-  constexpr auto begin() const { return iterator<typelist<Ts...>, 1>{}; }
-  constexpr auto end() const { return iterator<typelist<Ts...>, 1>{}; }
+  constexpr auto begin() const { return iterator<typelist<>, 1>{}; }
+  constexpr auto end() const { return iterator<typelist<>, 1>{}; }
 };
 
 template<typename... Ts>
@@ -252,14 +266,13 @@ struct typelist
   }
 
   constexpr auto front() const { return select_t<0, Ts...>{}; }
-  constexpr auto back() const { return select_t<m_end_index, Ts...>{}; }
+  constexpr auto back() const { return select_t<m_end_index - 1, Ts...>{}; }
 
   constexpr auto begin() const { return iterator<typelist<Ts...>, 0>{}; }
-  constexpr auto end() const { return iterator<typelist<Ts...>, sizeof...(Ts)>{}; }
+  constexpr auto end() const { return iterator<typelist<Ts...>, m_end_index>{}; }
 
 private:
-  const index_t m_end_index = sizeof...(Ts) - 1;
-  const index_t m_invalid_index = sizeof...(Ts);
+  const index_t m_end_index = sizeof...(Ts);
 };
 
 template<typename... Types>
