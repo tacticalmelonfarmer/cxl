@@ -37,8 +37,8 @@ struct string
   }
 
 private:
-  const std::integral_constant<index_t, sizeof...(Chars)> m_size = {};
-  const char m_data[sizeof...(Chars) + 1] = { Chars..., '\0' };
+  static constexpr std::integral_constant<index_t, sizeof...(Chars)> m_size = {};
+  static constexpr char m_data[sizeof...(Chars) + 1] = { Chars..., '\0' };
 };
 
 template<typename String, index_t... Indices>
