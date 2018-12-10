@@ -15,20 +15,6 @@ inline namespace detail {
 template<typename... Ts>
 struct typelist_info;
 
-template<>
-struct typelist_info<>
-{
-  using head_type = void;
-  using next_types = void;
-};
-
-template<typename T0, typename... Ts>
-struct typelist_info<T0, Ts...>
-{
-  using head_type = T0;
-  using next_types = typelist<Ts...>;
-};
-
 template<template<typename...> typename... MetaTypes>
 struct metatypelist
 {
@@ -74,102 +60,26 @@ struct emplacer
 template<>
 struct typelist<>
 {
-  using head_type = void;
-  using next_types = void;
-
   constexpr auto size() const { return std::integral_constant<index_t, 0>{}; }
   constexpr auto largest_alignment() const { return std::integral_constant<index_t, 0>{}; }
   constexpr auto smallest_alignment() const { return std::integral_constant<index_t, 0>{}; }
   constexpr auto largest_size() const { return std::integral_constant<index_t, 0>{}; }
   constexpr auto smallest_size() const { return std::integral_constant<index_t, 0>{}; }
 
-  struct error
-  {};
-
-  template<index_t Begin, index_t End>
-  constexpr auto subrange() const
-  {
-    static_assert(false, "cannot get subrange of empty typelist");
-    return error{};
-  }
-
-  template<index_t Index, template<typename...> typename TL, typename... Deduced>
-  constexpr auto insert(TL<Deduced...>) const
-  {
-    static_assert(Index == 0, "inserting into empty typelists can only be done at index 0");
-    return typelist<Deduced...>{};
-  }
-
   template<template<typename...> typename TL, typename... Deduced>
   constexpr auto append(TL<Deduced...>) const
   {
     return typelist<Deduced...>{};
   }
-
-  template<template<typename...> typename TL, typename... Deduced>
-  constexpr auto prepend(TL<Deduced...>) const
-  {
-    return typelist<Deduced...>{};
-  }
-
-  template<typename Error>
-  constexpr Error erase(...) const
-  {
-    static_assert(false, "cannot erase types from an empty typelist");
-    return error{};
-  }
-
-  template<template<typename...> typename ApplyTo>
-  constexpr auto applied_emplacer() const
-  {
-    return emplacer<ApplyTo<>>{};
-  }
-
-  template<typename Type, typename Error>
-  constexpr Error index_of() const
-  {
-    static_assert(false, "no types to get index of in empty typelist");
-    return error{};
-  }
-
-  template<typename Error>
-  constexpr Error type_emplacer(...) const
-  {
-    static_assert(false, "no types in empty typelist to emplace");
-    return error{};
-  }
-
-  template<typename... U>
-  constexpr auto operator[](U...) const
-  {
-    return type_emplacer();
-  }
-
-  template<typename Error>
-  constexpr Error front() const
-  {
-    static_assert(false, "empty typelist has no front");
-    return error{};
-  }
-
-  template<typename Error>
-  constexpr Error back() const
-  {
-    static_assert(false, "empty typelist has no back");
-    return error{};
-  }
-
-  constexpr auto begin() const { return iterator<typelist<>, 1>{}; }
-  constexpr auto end() const { return iterator<typelist<>, 1>{}; }
 };
 
-template<typename... Ts>
-struct typelist
+template<typename T0, typename... Ts>
+struct typelist<T0, Ts...>
 {
-  using head_type = typename typelist_info<Ts...>::head_type;
-  using next_types = typename typelist_info<Ts...>::next_types;
+  using head_type = T0;
+  using next_types = typelist<Ts...>;
 
-  constexpr auto size() const { return std::integral_constant<index_t, sizeof...(Ts)>{}; }
+  constexpr auto size() const { return std::integral_constant<index_t, sizeof...(Ts) + 1>{}; }
   constexpr auto largest_alignment() const
   {
     return std::integral_constant < index_t, (alignof(head_type) > next_types{}.smallest_alignment())
@@ -197,7 +107,7 @@ struct typelist
   constexpr auto subrange() const
   {
     if constexpr (Index >= Begin && Index <= End) {
-      return subrange<Begin, End, Index + 1, Collector..., select_t<Index, Ts...>>();
+      return subrange<Begin, End, Index + 1, Collector..., select_t<Index, T0, Ts...>>();
     } else if constexpr (Index < Begin) {
       return subrange<Begin, End, Index + 1>();
     } else if constexpr (Index > End) {
@@ -216,13 +126,13 @@ struct typelist
   template<template<typename...> typename TL, typename... Deduced>
   constexpr auto append(TL<Deduced...>) const
   {
-    return typelist<Ts..., Deduced...>{};
+    return typelist<T0, Ts..., Deduced...>{};
   }
 
   template<template<typename...> typename TL, typename... Deduced>
   constexpr auto prepend(TL<Deduced...>) const
   {
-    return typelist<Deduced..., Ts...>{};
+    return typelist<Deduced..., T0, Ts...>{};
   }
 
   template<index_t Index>
@@ -244,19 +154,19 @@ struct typelist
   template<template<typename...> typename ApplyTo>
   constexpr auto applied_emplacer() const
   {
-    return emplacer<ApplyTo<Ts...>>{};
+    return emplacer<ApplyTo<T0, Ts...>>{};
   }
 
   template<typename Type>
   constexpr auto index_of() const
   {
-    return index_of<Type, Ts...>();
+    return index_of<Type, T0, Ts...>();
   }
 
   template<index_t Index>
   constexpr auto type_emplacer(const std::integral_constant<index_t, Index>) const
   {
-    return emplacer<select_t<Index, Ts...>>{};
+    return emplacer<select_t<Index, T0, Ts...>>{};
   }
 
   template<index_t Index>
@@ -265,14 +175,14 @@ struct typelist
     return type_emplacer(std::integral_constant<index_t, Index>{});
   }
 
-  constexpr auto front() const { return select_t<0, Ts...>{}; }
-  constexpr auto back() const { return select_t<m_end_index - 1, Ts...>{}; }
+  constexpr auto front() const { return select_t<0, T0, Ts...>{}; }
+  constexpr auto back() const { return select_t<m_end_index - 1, T0, Ts...>{}; }
 
-  constexpr auto begin() const { return iterator<typelist<Ts...>, 0>{}; }
-  constexpr auto end() const { return iterator<typelist<Ts...>, m_end_index>{}; }
+  constexpr auto begin() const { return iterator<typelist<T0, Ts...>, 0>{}; }
+  constexpr auto end() const { return iterator<typelist<T0, Ts...>, m_end_index>{}; }
 
 private:
-  const index_t m_end_index = sizeof...(Ts);
+  const index_t m_end_index = sizeof...(Ts) + 1;
 };
 
 template<typename... Types>
