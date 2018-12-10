@@ -38,28 +38,8 @@ ways to apply/expand a typelist into a user template.
 It is compatible with the iterator sublibrary.
 
 methods for empty typelists include:
-* subrange
-  * **compile-time error**: cannot get subrange of empty typelist
-* insert
-  * expands another typelist into this typelist at given index (**must be index 0**)
 * append
-  * expands a typelist into this
-* prepend
-  * expands a typelist into this
-* erase
-  * **compile-time error**: cannot erase types from an empty typelist
-* applied_emplacer
-  * applies types to a template and returns an emplacer for that template
-* index_of
-  * **compile-time error**: no types to get index of in empty typelist
-* type_emplacer
-  * **compile-time error**: no types in empty typelist to emplace
-* operator[]
-  * **compile-time error**: no types in empty typelist to emplace
-* front
-  * **compile-time error**: empty typelist has no front
-* back
-  * **compile-time error**: empty typelist has no back
+  * expands a typelist into this, the only valid operation for an empty typelist
 
 methods for non-empty typelists include:
 * subrange
