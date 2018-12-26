@@ -69,7 +69,7 @@ methods for non-empty typelists include:
 * `.back()`
   * returns a proxy constructor for the last type
 
-# Parse
+## Parse
 *include/cxl/parse.hpp* contains the parsing sublibrary. 
 There are a handful of predefined fundamental parsers, which operate on `cxl::string<...>`s. 
 These parsers can be combined in many 
