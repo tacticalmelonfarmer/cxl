@@ -18,12 +18,12 @@ struct typelist_info;
 template<template<typename...> typename... MetaTypes>
 struct metatypelist
 {
-  template<template<typename> typename TL, typename... Types>
+  template<template<typename...> typename TL, typename... Types>
   constexpr auto establish_one_for_each(TL<Types...>) const
   {
     return typelist<MetaTypes<Types>...>{};
   }
-  template<template<typename> typename TL, typename... Types>
+  template<template<typename...> typename TL, typename... Types>
   constexpr auto establish_all_for_each(TL<Types...>) const
   {
     return typelist<MetaTypes<Types...>...>{};
@@ -106,6 +106,8 @@ struct typelist<T0, Ts...>
   template<index_t Begin, index_t End, index_t Index, typename... Collector>
   constexpr auto subrange() const
   {
+    static_assert(Begin >= 0, "invalid Begin index for typelist<...>::subrange");
+    static_assert(End <= m_end_index, "invalid End index for typelist<...>::subrange");
     if constexpr (Index >= Begin && Index <= End) {
       return subrange<Begin, End, Index + 1, Collector..., select_t<Index, T0, Ts...>>();
     } else if constexpr (Index < Begin) {
@@ -151,6 +153,14 @@ struct typelist<T0, Ts...>
     return first_partition.join(last_partition);
   }
 
+  template<index_t BeginIter, index_t EndIter>
+  constexpr auto erase(const BeginIter, const EndIter) const
+  {
+    constexpr auto first_partition = subrange<0, BeginIter{}.index() - 1>();
+    constexpr auto last_partition = subrange<EndIter{}.index() + 1, m_end_index>();
+    return first_partition.join(last_partition);
+  }
+
   template<template<typename...> typename ApplyTo>
   constexpr auto applied_emplacer() const
   {
@@ -175,14 +185,14 @@ struct typelist<T0, Ts...>
     return type_emplacer(std::integral_constant<index_t, Index>{});
   }
 
-  constexpr auto front() const { return select_t<0, T0, Ts...>{}; }
-  constexpr auto back() const { return select_t<m_end_index - 1, T0, Ts...>{}; }
+  constexpr auto front() const { return emplacer<select_t<0, T0, Ts...>>{}; }
+  constexpr auto back() const { return emplacer<select_t<m_end_index - 1, T0, Ts...>>{}; }
 
   constexpr auto begin() const { return iterator<typelist<T0, Ts...>, 0>{}; }
   constexpr auto end() const { return iterator<typelist<T0, Ts...>, m_end_index>{}; }
 
 private:
-  const index_t m_end_index = sizeof...(Ts) + 1;
+  static constexpr index_t m_end_index = sizeof...(Ts) + 1;
 };
 
 template<typename... Types>

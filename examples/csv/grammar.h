@@ -6,18 +6,18 @@ namespace grammar {
 using namespace cxl::literals;
 using namespace cxl::parse;
 
-// matches whitespace characters
-constexpr auto skip = *one_char(STR(" \n\t"));
+// matches a whitespace character
+constexpr auto skip = one_char(STR(" \n\t"));
 
-// returns a parser matching {Target} surrounded by one-or-more whitespace characters
+// returns a parser matching {Target} followed by one-or-more skip, preceeded by zero-or-more skip
 template<typename Target>
 constexpr auto
 token(const Target)
 {
-  return skip & Target{} & skip;
+  return *skip & Target{} & +skip;
 }
 
-// returns a parser matching {Target} surrounded by whitespace characters
+// returns a parser matching a list of token( {Target} ) seperated by {Delimiter}
 template<typename Target, typename Delimiter>
 constexpr auto
 token_list(const Target, const Delimiter)

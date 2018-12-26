@@ -6,7 +6,7 @@ project(cxl)
 add_executable(code-generators tools/code-generators/aggregate.generator.cpp)
 target_compile_features(code-generators PUBLIC cxx_std_17)
 
-## this command calls code-generators
+## this command calls code-generators produced executable
 add_custom_command(TARGET code-generators POST_BUILD
 	COMMAND $<TARGET_FILE:code-generators> ${PROJECT_SOURCE_DIR}/include/cxl 32
 )
@@ -15,4 +15,3 @@ add_custom_command(TARGET code-generators POST_BUILD
 add_executable(csv examples/csv/main.cpp)
 target_include_directories(csv PUBLIC include)
 target_compile_features(csv PUBLIC cxx_std_17)
-#add_dependencies(csv tools) # this forces our code generator to be compiled and called

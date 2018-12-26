@@ -38,33 +38,36 @@ ways to apply/expand a typelist into a user template.
 It is compatible with the iterator sublibrary.
 
 methods for empty typelists include:
-* append
+* `.append(Typelist)`
   * expands a typelist into this, the only valid operation for an empty typelist
 
 methods for non-empty typelists include:
-* subrange
-  * returns a range of types indicated by two inclusive indices
-* insert
+* `.subrange(Begin, End)`
+  * returns a range of types indicated by two inclusive compile-time indices
+* `.insert(Typelist)`
   * expands another typelist into this typelist at given index
-* append
+* `.append(Typelist)`
   * expands a typelist into the end of this typelist
-* prepend
+* `.prepend(Typelist)`
   * expands a typelist into the beginning of this typelist
-* erase
+* `.erase(Index)`
   * returns a typelist, with type at given index removed
+* `.erase(Begin, End)`
   * returns a typelist, with types between given indices removed
-* applied_emplacer
+* `.erase(BeginIter, EndIter)`
+  * returns a typelist, with types between given iterators removed
+* `.applied_emplacer()`
   * applies types to a templated class and returns an emplacer for that class
-* index_of
+* `.template index_of<T>()`
   * for a given type, returns index of first occurence
-* type_emplacer
-  * returns a proxy constructor for a type in this typelist
-* operator[]
-  * shortcut for type_emplacer, also allows iterating
-* front
-  * returns a default constructed instance of the first type
-* back
-  * returns a default constructed instance of the last type
+* `.type_emplacer(Index)`
+  * returns a proxy constructor for a type at given index
+* `.operator[](Index)`
+  * equivalent to `type_emplacer`, enables `cxl::iterator` compatibility
+* `.front()`
+  * returns a proxy constructor for the first type
+* `.back()`
+  * returns a proxy constructor for the last type
 
 # Parse
 *include/cxl/parse.hpp* contains the parsing sublibrary. 
@@ -100,4 +103,21 @@ constexpr auto result = parser.parse(STR("abc"));
 ```
 
 now `result.tree()` will return a `typelist<synth<string<'a','b','c'>>>`. 
-The rest is up to you...
+
+Built-in parser classes include:
+* `one_string`
+  * `(constructor)(TargetString)`: takes a string as target
+  * `.parse(StringToParse)`: parses a string and matches target; consumes on success
+  * `.generate(GeneratorTemplate)`: returns a new parser matching this one in behaviour, but producing user defined types into the parse tree on success
+* `one_char`
+  * `(constructor)(TargetString)`: takes a string as target
+  * `.parse(StringToParse)`: parses first character in a string and matches any character in target; consumes on success
+  * `.generate(GeneratorTemplate)`: returns a new parser matching this one in behaviour, but producing user defined types into the parse tree on success
+* `before`
+  * `(constructor)(TargetParser)`: takes another parser as target
+  * `.parse(StringToParse)`: parses a string and matches target; does **not** consume on success
+  * `.generate(GeneratorTemplate)`: returns a new parser matching this one in behaviour, but producing user defined types into the parse tree on success
+* `filter`
+  * `(constructor)(TargetParser)`: takes another parser as target
+  * `.parse(StringToParse)`: parses a string and matches anything but target; consumes one character on success
+  * `.generate(GeneratorTemplate)`: returns a new parser matching this one in behaviour, but producing user defined types into the parse tree on success
