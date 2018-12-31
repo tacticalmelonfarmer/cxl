@@ -34,7 +34,7 @@ struct parse_result
   template<typename Generator>
   constexpr auto generate(const Generator) const
   {
-    return parse_result<Match, Remainder, Status, typelist<Generator>>{};
+    return parse_result<Match, Remainder, Status, decltype(ParseTree{}.append(typelist<Generator>{}))>{};
   }
   constexpr auto fail() const { return parse_result<Match, Remainder, parse_status::failure, ParseTree>{}; }
   constexpr auto succeed() const { return parse_result<Match, Remainder, parse_status::success, ParseTree>{}; }

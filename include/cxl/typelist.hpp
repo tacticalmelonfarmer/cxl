@@ -122,7 +122,7 @@ struct typelist<T0, Ts...>
   {
     constexpr auto first_partition = subrange<0, Index - 1>();
     constexpr auto last_partition = subrange<Index, m_end_index>();
-    return first_partition.append_types(TL<Deduced...>{}).join(last_partition);
+    return first_partition.append(TL<Deduced...>{}).join(last_partition);
   }
 
   template<template<typename...> typename TL, typename... Deduced>
@@ -153,7 +153,7 @@ struct typelist<T0, Ts...>
     return first_partition.join(last_partition);
   }
 
-  template<index_t BeginIter, index_t EndIter>
+  template<typename BeginIter, typename EndIter>
   constexpr auto erase(const BeginIter, const EndIter) const
   {
     constexpr auto first_partition = subrange<0, BeginIter{}.index() - 1>();

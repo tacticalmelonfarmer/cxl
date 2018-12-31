@@ -14,7 +14,7 @@ template<typename Target>
 constexpr auto
 token(const Target)
 {
-  return *skip & Target{} & +skip;
+  return *skip & Target{} & *skip;
 }
 
 // returns a parser matching a list of token( {Target} ) seperated by {Delimiter}

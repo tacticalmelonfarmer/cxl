@@ -13,20 +13,20 @@ using index_t = long long signed;
 
 inline namespace detail {
 
-template<index_t Index, typename... Ts>
+template<index_t, typename...>
 struct ct_select;
 
 template<typename T, typename... Ts>
 struct ct_select<0, T, Ts...>
 {
-  typedef T type;
+  using type = T;
 };
 
 template<index_t Index, typename T, typename... Ts>
 struct ct_select<Index, T, Ts...>
 {
   static_assert(Index <= sizeof...(Ts), "parameter pack index out of bounds");
-  typedef typename ct_select<Index - 1, Ts...>::type type;
+  using type = typename ct_select<Index - 1, Ts...>::type;
 };
 }
 
@@ -83,8 +83,8 @@ index_of(const std::integral_constant<index_t, Index> = std::integral_constant<i
     return index_of<Find, Ts...>(std::integral_constant<index_t, Index + 1>{});
 }
 
-template<index_t AtIndex, typename... TypeList>
-using select_t = typename ct_select<AtIndex, TypeList...>::type;
+template<index_t AtIndex, typename... Types>
+using select_t = typename ct_select<AtIndex, Types...>::type;
 
 template<auto N, auto E, index_t... Indices>
 constexpr auto
