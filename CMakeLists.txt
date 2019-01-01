@@ -15,3 +15,7 @@ add_custom_command(TARGET code-generators POST_BUILD
 add_executable(csv examples/csv/main.cpp)
 target_include_directories(csv PUBLIC include)
 target_compile_features(csv PUBLIC cxx_std_17)
+
+add_executable(string_manip examples/string_manip/main.cpp)
+target_include_directories(string_manip PUBLIC include)
+target_compile_features(string_manip PUBLIC cxx_std_17)

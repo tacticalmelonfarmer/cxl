@@ -10,7 +10,7 @@ namespace cxl {
 template<char... Chars>
 struct string
 {
-  typedef char value_type;
+  using value_type = char;
 
   constexpr operator const char*() const { return &m_data[0]; }
 
@@ -41,31 +41,33 @@ private:
   static constexpr char m_data[sizeof...(Chars) + 1] = { Chars..., '\0' };
 };
 
+namespace detail {
 template<typename String, index_t... Indices>
 constexpr auto
 build_string_impl(const String, const index_range<Indices...>)
 {
   return string<String{}.chars[Indices]...>{};
 }
+}
 
-template<index_t Size, typename String>
+template<index_t Size, typename LiteralWrapper>
 constexpr auto
 build_string()
 {
   if constexpr (Size == 0)
     return string<>{};
   else
-    return build_string_impl(String{}, make_index_range<0, Size - 1>());
+    return detail::build_string_impl(LiteralWrapper{}, make_index_range<0, Size - 1>());
 }
 
 #define STR(string_literal)                                                                                            \
   []() constexpr                                                                                                       \
   {                                                                                                                    \
-    struct constexpr_string_type                                                                                       \
+    struct literal_wrapper                                                                                             \
     {                                                                                                                  \
       const char* chars = string_literal;                                                                              \
     };                                                                                                                 \
-    return cxl::build_string<sizeof(string_literal) - 1, constexpr_string_type>();                                     \
+    return cxl::build_string<sizeof(string_literal) - 1, literal_wrapper>();                                           \
   }                                                                                                                    \
   ()
 
@@ -79,44 +81,35 @@ operator+(const string<L...>, const string<R...>)
   return string<L..., R...>{};
 }
 
+namespace detail {
 template<typename String, index_t... Indices>
 constexpr auto
 substr_impl(const String, const index_range<Indices...>)
 {
   return string<String{}[Indices]...>{};
 }
+}
 
+// creates a sub-string from a pair of iterators
 template<typename String, index_t Begin, index_t End>
 constexpr auto
 substr(const iterator<String, Begin>, const iterator<String, End>)
 {
-  return substr_impl(String{}, make_index_range<Begin, End - 1>());
-}
-
-template<typename String, index_t Pos>
-constexpr auto
-substr(const iterator<String, Pos>, const iterator<String, Pos>)
-{
-  return string<>{};
-}
-
-template<typename String>
-constexpr auto
-strlen(const String)
-{
-  return std::integral_constant<index_t, String{}.size>{};
-}
-
-template<typename String, index_t Begin, index_t End>
-constexpr auto
-strlen(const iterator<String, Begin>, const iterator<String, End> end)
-{
-  if constexpr (decltype(end){} != String{}.end())
-    return std::integral_constant<index_t, End - Begin + 1>{};
+  if constexpr (Begin == End)
+    return string<>{};
   else
-    return std::integral_constant<index_t, End - Begin>{};
+    return detail::substr_impl(String{}, make_index_range<Begin, End - 1>());
 }
 
+// creates a sub-string from a string, position and length
+template<typename String, index_t Pos, index_t Len>
+constexpr auto
+substr(const String, const std::integral_constant<index_t, Pos>, const std::integral_constant<index_t, Len>)
+{
+  return detail::substr_impl(String{}, make_index_range<Pos, (Pos + Len) - 1>());
+}
+
+namespace detail {
 template<typename Target, typename String, index_t... Indices>
 constexpr auto
 strmatch_impl(const Target, const String, const index_range<Indices...>)
@@ -124,7 +117,9 @@ strmatch_impl(const Target, const String, const index_range<Indices...>)
   constexpr auto match_char = [](index_t index) -> index_t { return Target{}[index] == String{}[index] ? 1 : 0; };
   return std::integral_constant<index_t, (0 + ... + match_char(Indices))>{};
 }
+}
 
+// returns the amount of characters that each string have in common, from beginning until first non-matching character
 template<typename Target, typename String>
 constexpr auto
 strmatch(const Target, const String)
@@ -231,21 +226,21 @@ stof(const string<Begin, Chars...>)
   if constexpr (Begin == '-') {
     constexpr auto work_string = string<Chars...>{};
     constexpr auto decimal_iter = find(CHR('.'), work_string, work_string.begin());
-    constexpr float integer_part = stoi(csubstr(work_string.begin(), decimal_iter));
+    constexpr float integer_part = stoi(substr(work_string.begin(), decimal_iter));
     constexpr auto fractional_string = substr(++decimal_iter, work_string.end());
     constexpr float fractional_part = stoi(fractional_string) * pow<10, -(fractional_string.size())>();
     return -(integer_part + fractional_part);
   } else if constexpr (Begin == '+') {
     constexpr auto work_string = string<Chars...>{};
     constexpr auto decimal_iter = find(CHR('.'), work_string, work_string.begin());
-    constexpr float integer_part = stoi(csubstr(work_string.begin(), decimal_iter));
+    constexpr float integer_part = stoi(substr(work_string.begin(), decimal_iter));
     constexpr auto fractional_string = substr(++decimal_iter, work_string.end());
     constexpr float fractional_part = stoi(fractional_string) * pow<10, -(fractional_string.size())>();
     return integer_part + fractional_part;
   } else {
     constexpr auto work_string = string<Begin, Chars...>{};
     constexpr auto decimal_iter = find(CHR('.'), work_string, work_string.begin());
-    constexpr float integer_part = stoi(csubstr(work_string.begin(), decimal_iter));
+    constexpr float integer_part = stoi(substr(work_string.begin(), decimal_iter));
     constexpr auto fractional_string = substr(++decimal_iter, work_string.end());
     constexpr float fractional_part = stoi(fractional_string) * pow<10, -(fractional_string.size())>();
     return integer_part + fractional_part;
@@ -259,21 +254,21 @@ stod(const string<Begin, Chars...>)
   if constexpr (Begin == '-') {
     constexpr auto work_string = string<Chars...>{};
     constexpr auto decimal_iter = find(CHR('.'), work_string, work_string.begin());
-    constexpr double integer_part = stoi(csubstr(work_string.begin(), decimal_iter));
+    constexpr double integer_part = stoi(substr(work_string.begin(), decimal_iter));
     constexpr auto fractional_string = substr(++decimal_iter, work_string.end());
     constexpr double fractional_part = stoi(fractional_string) * pow<10, -(fractional_string.size)>();
     return -(integer_part + fractional_part);
   } else if constexpr (Begin == '+') {
     constexpr auto work_string = string<Chars...>{};
     constexpr auto decimal_iter = find(CHR('.'), work_string, work_string.begin());
-    constexpr double integer_part = stoi(csubstr(work_string.begin(), decimal_iter));
+    constexpr double integer_part = stoi(substr(work_string.begin(), decimal_iter));
     constexpr auto fractional_string = substr(++decimal_iter, work_string.end());
     constexpr double fractional_part = stoi(fractional_string) * pow<10, -(fractional_string.size)>();
     return integer_part + fractional_part;
   } else {
     constexpr auto work_string = string<Begin, Chars...>{};
     constexpr auto decimal_iter = find(CHR('.'), work_string, work_string.begin());
-    constexpr double integer_part = stoi(csubstr(work_string.begin(), decimal_iter));
+    constexpr double integer_part = stoi(substr(work_string.begin(), decimal_iter));
     constexpr auto fractional_string = substr(++decimal_iter, work_string.end());
     constexpr double fractional_part = stoi(fractional_string) * pow<10, -(fractional_string.size)>();
     return integer_part + fractional_part;

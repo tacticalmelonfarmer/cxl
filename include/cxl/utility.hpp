@@ -54,25 +54,6 @@ make_index_range()
     return index_range<Position>{};
 }
 
-/*template<index_t First, index_t Last, index_t... Result>
-constexpr auto
-make_index_range()
-{
-  if constexpr (First == Last)
-    return index_range<First>{};
-  if constexpr (sizeof...(Result) == 0)
-    make_index_range<First, Last, First>();
-  else {
-    constexpr index_t previous = (Result, ...);
-    if constexpr (previous == Last)
-      return index_range<Result...>{};
-    else if constexpr (First < Last)
-      return make_index_range<First, Last, Result..., previous + 1>();
-    else if constexpr (First > Last)
-      return make_index_range<First, Last, Result..., previous - 1>();
-  }
-}*/
-
 template<typename Find, typename T0, typename... Ts, index_t Index>
 constexpr auto
 index_of(const std::integral_constant<index_t, Index> = std::integral_constant<index_t, 0>{})
