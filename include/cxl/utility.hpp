@@ -46,22 +46,24 @@ private:
   static constexpr index_t m_range[] = { Indices... };
 };
 
-template<index_t Begin, index_t End, index_t Position = Begin, index_t... Result>
+template<index_t First, index_t Last, index_t... Result>
 constexpr auto
 make_index_range()
 {
-  if constexpr (Begin < End) {
-    if constexpr (Position != End)
-      return make_index_range<Begin, End, Position + 1, Result..., Position>();
-    else
-      return index_range<Result..., Position>{};
-  } else if constexpr (Begin > End) {
-    if constexpr (Position != End)
-      return make_index_range<Begin, End, Position - 1, Result..., Position>();
-    else
-      return index_range<Result..., Position>{};
-  } else
-    return index_range<Position>{};
+  if constexpr (First == Last)
+    return index_range<First>{};
+  if constexpr (sizeof...(Result) == 0)
+    return make_index_range<First, Last, First>();
+  else {
+    constexpr index_t result_array[] = { Result... };
+    constexpr index_t previous = result_array[sizeof...(Result) - 1];
+    if constexpr (previous == Last)
+      return index_range<Result...>{};
+    else if constexpr (First < Last)
+      return make_index_range<First, Last, Result..., previous + 1>();
+    else if constexpr (First > Last)
+      return make_index_range<First, Last, Result..., previous - 1>();
+  }
 }
 
 inline namespace detail {

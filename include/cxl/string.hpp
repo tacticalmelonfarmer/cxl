@@ -1,4 +1,5 @@
 #pragma once
+
 #include "integral.hpp"
 #include "iterator.hpp"
 #include "typelist.hpp"
