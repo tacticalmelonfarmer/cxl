@@ -1,5 +1,30 @@
 # Constant eXpression Library (abbreviated **cxl**)
 
+## Fundamental Utilities
+*include/cxl/utility.hpp* contains basic template types and functions
+that are used across the whole library, such as `cxl::index_t` which is used in 
+place of `size_t` and as indices, it should be a signed integer type capable 
+of holding relatively large values, it is signed to allow negative indices. 
+anything that requires a huge unsigned integer as an index value should probably not be done at 
+compile-time. `cxl::select_t<N, Types...>` selects the `N`th type in `Types...`. 
+`cxl::index_range<Indices...>` holds a parameter pack of `cxl::index_t`, and provides some methods:
+* `.size()`
+  * returns a `std::integral_constant<index_t, sizeof...(Indices)>`
+* `operator[]`
+  * takes a `std::integral_constant<index_t, N>` and returns the `N`th value in `Indices...`
+
+template function `cxl::make_index_range<index_t First, index_t Last>()` returns:
+* `First` < `Last`?
+  * a `cxl::index_range<Indices...>` where `Indices...` starts at First **ascending** to Last
+* `First` > `Last`?
+  * a `cxl::index_range<Indices...>` where `Indices...` starts at First **descending** to Last
+
+template function `cxl::pow<auto N, auto E>()` is a compile time power/exponent function:
+  * `N` is the base
+  * `E` is the exponent
+
+
+
 ## Integral
 *include/cxl/integral.hpp* contains templated user-defined 
 literal operators that allow you to easily convert literals 
@@ -16,7 +41,7 @@ to `std::integral_constant<...>`s.
 
 ## Iterator
 *include/cxl/iterator.hpp* contains an adaptable constexpr iterator class
-`cxl::iterator<...>` which can support any constexpr class with the following methods:
+`cxl::iterator<...>` which can support any constexpr class that implements the following methods properly:
 * `constexpr auto begin() const`
 * `constexpr auto end() const`
 * `template<typename T, T value>`  

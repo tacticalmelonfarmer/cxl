@@ -41,7 +41,7 @@ private:
   static constexpr char m_data[sizeof...(Chars) + 1] = { Chars..., '\0' };
 };
 
-namespace detail {
+inline namespace detail {
 template<typename String, index_t... Indices>
 constexpr auto
 build_string_impl(const String, const index_range<Indices...>)
@@ -81,7 +81,7 @@ operator+(const string<L...>, const string<R...>)
   return string<L..., R...>{};
 }
 
-namespace detail {
+inline namespace detail {
 template<typename String, index_t... Indices>
 constexpr auto
 substr_impl(const String, const index_range<Indices...>)
@@ -109,7 +109,7 @@ substr(const String, const std::integral_constant<index_t, Pos>, const std::inte
   return detail::substr_impl(String{}, make_index_range<Pos, (Pos + Len) - 1>());
 }
 
-namespace detail {
+inline namespace detail {
 template<typename Target, typename String, index_t... Indices>
 constexpr auto
 strmatch_impl(const Target, const String, const index_range<Indices...>)
