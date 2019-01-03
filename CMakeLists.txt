@@ -7,10 +7,11 @@ add_executable(code-generators tools/code-generators/aggregate.generator.cpp)
 target_compile_features(code-generators PUBLIC cxx_std_17)
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
 	target_link_libraries(code-generators PUBLIC stdc++fs)
+elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL "MSVC")
 endif()
 
 ## this command calls code-generators produced executable
-add_custom_command(TARGET code-generators PRE_BUILD
+add_custom_command(TARGET code-generators POST_BUILD
 	COMMAND $<TARGET_FILE:code-generators> ${PROJECT_SOURCE_DIR}/include/cxl 32
 )
 
