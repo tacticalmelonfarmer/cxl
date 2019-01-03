@@ -40,11 +40,11 @@ using select_t = typename select_impl<AtIndex, Types...>::type;
 template <index_t... Indices>
 struct index_range
 {
-  constexpr auto size() const { return std::integral_constant<index_t, sizeof...(Indices)>{}; }
+  constexpr auto size() const { return ::std::integral_constant<index_t, sizeof...(Indices)>{}; }
   template <index_t Index>
-  constexpr auto operator[](const std::integral_constant<index_t, Index>) const
+  constexpr auto operator[](const ::std::integral_constant<index_t, Index>) const
   {
-    return std::integral_constant<index_t, m_range[Index]>{};
+    return ::std::integral_constant<index_t, m_range[Index]>{};
   }
 
 private:
@@ -76,12 +76,12 @@ inline namespace detail
 {
 template <typename Find, typename T0, typename... Ts, index_t Index>
 constexpr auto
-index_of_impl(const std::integral_constant<index_t, Index> = std::integral_constant<index_t, 0>{})
+index_of_impl(const ::std::integral_constant<index_t, Index> = ::std::integral_constant<index_t, 0>{})
 {
-  if constexpr (std::is_same_v<Find, T0>)
+  if constexpr (::std::is_same_v<Find, T0>)
     return Index;
   else
-    return index_of_impl<Find, Ts...>(std::integral_constant<index_t, Index + 1>{});
+    return index_of_impl<Find, Ts...>(::std::integral_constant<index_t, Index + 1>{});
 }
 } // namespace detail
 
@@ -135,7 +135,7 @@ combine_digits_base10(index_t result, index_t digit0, Digits... digits)
 constexpr index_t
 parse_digit(char C)
 {
-  return (C >= '0' && C <= '9') ? C - '0' : throw std::out_of_range("only decimal digits are allowed");
+  return (C >= '0' && C <= '9') ? C - '0' : throw ::std::out_of_range("only decimal digits are allowed");
 }
 } // namespace detail
 } // namespace cxl
