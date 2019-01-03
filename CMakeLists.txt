@@ -10,7 +10,7 @@ if (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
 endif()
 
 ## this command calls code-generators produced executable
-add_custom_command(TARGET code-generators POST_BUILD
+add_custom_command(TARGET code-generators PRE_BUILD
 	COMMAND $<TARGET_FILE:code-generators> ${PROJECT_SOURCE_DIR}/include/cxl 32
 )
 
