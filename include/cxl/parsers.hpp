@@ -6,9 +6,7 @@
 #include "typelist.hpp"
 #include "utility.hpp"
 
-namespace cxl
-{
-namespace parse
+namespace cxl::parse
 {
 
 // this parser matches one instance of a given compile-time string
@@ -758,5 +756,4 @@ operator|(L, one_of<R...>)
 {
   return one_of<L, R...>{};
 }
-} // namespace parse
-} // namespace cxl
+} // namespace cxl::parse

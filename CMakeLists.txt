@@ -22,3 +22,7 @@ target_compile_features(csv PUBLIC cxx_std_17)
 add_executable(string_manip examples/string_manip/main.cpp)
 target_include_directories(string_manip PUBLIC include)
 target_compile_features(string_manip PUBLIC cxx_std_17)
+
+add_executable(struct_manip examples/struct_manip/main.cpp)
+target_include_directories(struct_manip PUBLIC include)
+target_compile_features(struct_manip PUBLIC cxx_std_17)

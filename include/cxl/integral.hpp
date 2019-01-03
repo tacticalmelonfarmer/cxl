@@ -4,6 +4,25 @@
 
 namespace cxl
 {
+inline namespace detail
+{
+template <class... Digits>
+constexpr index_t
+combine_digits_base10(index_t result, index_t digit0, Digits... digits)
+{
+  if constexpr (sizeof...(Digits) == 0)
+    return result + digit0;
+  else
+    return combine_digits_base10(result + (pow<10, sizeof...(Digits)>() * digit0), digits...);
+}
+
+constexpr index_t
+parse_digit(char C)
+{
+  return (C >= '0' && C <= '9') ? C - '0' : throw ::std::out_of_range("only decimal digits are allowed");
+}
+} // namespace detail
+
 inline namespace literals
 {
 
