@@ -32,6 +32,5 @@ constexpr auto string = (quote & (*(!one_char(STR("'")))).generate(generators::q
 constexpr auto value = floating | integer | string;
 constexpr auto value_list = token_list(value, one_char(STR(",")));
 
-constexpr auto test = sequence(one_string(STR("Hello, ")),
-                               one_string(STR("World!"))); // this breaks MSVC with a completely useless error message
+constexpr auto hello_world_i_break_msvc = sequence(one_string(STR("Hello, ")), one_string(STR("World!")));
 }

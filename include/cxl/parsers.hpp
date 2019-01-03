@@ -9,8 +9,6 @@
 namespace cxl {
 namespace parse {
 
-/////////////////////////// forward parser decls.
-
 // this parser matches one instance of a given compile-time string
 template<typename TargetString>
 struct one_string;
@@ -37,11 +35,11 @@ struct filter;
 template<typename TargetParser>
 struct optional;
 
-// same
+// this parser matches one or more consecutive occurences of a parser
 template<typename TargetParser>
 struct one_or_more;
 
-// ...
+// this parser matches zero or more consecutive occurences of a parser
 template<typename TargetParser>
 struct zero_or_more;
 
@@ -77,7 +75,7 @@ struct anything;
 template<typename TargetParser, template<typename...> typename Output>
 struct generator;
 
-/////////////////////////// parsers
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template<typename TargetString>
 struct one_string
