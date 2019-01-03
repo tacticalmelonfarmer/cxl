@@ -87,13 +87,10 @@ aggregate_arity()
 } // namespace detail
 
 template <typename T>
-decltype(aggregate_arity<T, 0>()) aggregate_arity_v;
-
-template <typename T>
 constexpr auto
 destructure(T &&pod)
 {
-  constexpr auto arity = aggregate_arity<::std::remove_reference_t<T>>();
+  constexpr auto arity = aggregate_arity<T, 0>();
   if constexpr (arity == 0)
     return ::std::tuple<>{};
 
