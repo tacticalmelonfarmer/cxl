@@ -23,7 +23,7 @@ void print_coord(T &&coord)
     else if constexpr (cxl::aggregate_arity_v<T> == 3)
     {
         auto d = cxl::destructure(::std::forward<T>(coord));
-        std::cout << "2D: " << get<0>(d) << get<1>(d) << "\n";
+        std::cout << "3D: " << get<0>(d) << get<1>(d) << get<2>(d) << "\n";
     }
 }
 
