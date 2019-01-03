@@ -2,8 +2,10 @@
 
 #include "utility.hpp"
 
-namespace cxl {
-inline namespace literals {
+namespace cxl
+{
+inline namespace literals
+{
 
 /* template<typename Char, Char... Chars>
 constexpr auto operator"" _chr()
@@ -12,13 +14,13 @@ constexpr auto operator"" _chr()
   return std::integral_constant<char, Chars...>{};
 }  //c++20 hopefully*/
 
-template<char... Digits>
+template <char... Digits>
 constexpr auto operator"" _i()
 {
   return std::integral_constant<index_t, combine_digits_base10(0, parse_digit(Digits)...)>{};
 }
 
-template<char... Digits>
+template <char... Digits>
 constexpr auto operator"" _i8()
 {
   constexpr auto parsed = combine_digits_base10(0, parse_digit(Digits)...);
@@ -26,7 +28,7 @@ constexpr auto operator"" _i8()
   return std::integral_constant<int8_t, parsed>{};
 }
 
-template<char... Digits>
+template <char... Digits>
 constexpr auto operator"" _i16()
 {
   constexpr auto parsed = combine_digits_base10(0, parse_digit(Digits)...);
@@ -34,7 +36,7 @@ constexpr auto operator"" _i16()
   return std::integral_constant<int16_t, parsed>{};
 }
 
-template<char... Digits>
+template <char... Digits>
 constexpr auto operator"" _i32()
 {
   constexpr auto parsed = combine_digits_base10(0, parse_digit(Digits)...);
@@ -42,7 +44,7 @@ constexpr auto operator"" _i32()
   return std::integral_constant<int32_t, parsed>{};
 }
 
-template<char... Digits>
+template <char... Digits>
 constexpr auto operator"" _i64()
 {
   constexpr auto parsed = combine_digits_base10(0, parse_digit(Digits)...);
@@ -50,7 +52,7 @@ constexpr auto operator"" _i64()
   return std::integral_constant<int64_t, parsed>{};
 }
 
-template<char... Digits>
+template <char... Digits>
 constexpr auto operator"" _u8()
 {
   constexpr auto parsed = combine_digits_base10(0, parse_digit(Digits)...);
@@ -58,7 +60,7 @@ constexpr auto operator"" _u8()
   return std::integral_constant<uint8_t, parsed>{};
 }
 
-template<char... Digits>
+template <char... Digits>
 constexpr auto operator"" _u16()
 {
   constexpr auto parsed = combine_digits_base10(0, parse_digit(Digits)...);
@@ -66,7 +68,7 @@ constexpr auto operator"" _u16()
   return std::integral_constant<uint16_t, parsed>{};
 }
 
-template<char... Digits>
+template <char... Digits>
 constexpr auto operator"" _u32()
 {
   constexpr auto parsed = combine_digits_base10(0, parse_digit(Digits)...);
@@ -74,12 +76,12 @@ constexpr auto operator"" _u32()
   return std::integral_constant<uint32_t, parsed>{};
 }
 
-template<char... Digits>
+template <char... Digits>
 constexpr auto operator"" _u64()
 {
   constexpr auto parsed = combine_digits_base10(0, parse_digit(Digits)...);
   static_assert(parsed >= 0 && parsed <= UINT64_MAX, "uint64_t literal '_u64' out of bounds");
   return std::integral_constant<uint64_t, parsed>{};
 }
-}
-}
+} // namespace literals
+} // namespace cxl
