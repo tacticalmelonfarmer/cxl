@@ -8,7 +8,7 @@ namespace cxl {
 
 using std::size_t;
 
-inline namespace detail {
+namespace detail {
 
 template<typename T>
 struct size_greater
@@ -17,8 +17,7 @@ struct size_greater
 };
 
 template<typename T, typename U>
-constexpr auto
-operator>(const size_greater<T>, const size_greater<U>)
+constexpr auto operator>(size_greater<T>, size_greater<U>)
 {
   (sizeof(T) >= sizeof(U)) ? size_greater<T>{} : size_greater<U>{};
 }
@@ -36,7 +35,7 @@ struct unknown_t
 };
 
 template<size_t N = 0>
-using unknown = const unknown_t;
+using unknown = unknown_t;
 
 template<typename T, size_t... I>
 constexpr auto
@@ -77,7 +76,8 @@ template<typename T, size_t Count = 0>
 constexpr auto
 aggregate_arity()
 {
-  if constexpr (std::is_aggregate_v<T> && is_brace_constructible<T, Count>() && !is_brace_constructible<T, Count + 1>())
+  if constexpr (std::is_aggregate_v<T> && detail::is_brace_constructible<T, Count>() &&
+                !detail::is_brace_constructible<T, Count + 1>())
     return size<Count>{};
   else
     return aggregate_arity<T, Count + 1>();

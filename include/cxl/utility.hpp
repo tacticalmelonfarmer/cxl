@@ -11,6 +11,8 @@ namespace cxl {
 
 using index_t = long long signed;
 
+using tag_t = int;
+
 inline namespace detail {
 template<index_t, typename...>
 struct select_impl;
@@ -74,7 +76,7 @@ index_of_impl(const std::integral_constant<index_t, Index> = std::integral_const
   if constexpr (std::is_same_v<Find, T0>)
     return Index;
   else
-    return index_of<Find, Ts...>(std::integral_constant<index_t, Index + 1>{});
+    return index_of_impl<Find, Ts...>(std::integral_constant<index_t, Index + 1>{});
 }
 }
 

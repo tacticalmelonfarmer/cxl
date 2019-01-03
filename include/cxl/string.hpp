@@ -16,7 +16,7 @@ struct string
   constexpr operator const char*() const { return &m_data[0]; }
 
   template<index_t Index>
-  constexpr auto operator[](const std::integral_constant<index_t, Index>) const
+  constexpr auto operator[](std::integral_constant<index_t, Index>) const
   {
     return std::integral_constant<char, m_data[Index]>{};
   }
@@ -45,7 +45,7 @@ private:
 inline namespace detail {
 template<typename String, index_t... Indices>
 constexpr auto
-build_string_impl(const String, const index_range<Indices...>)
+build_string_impl(String, index_range<Indices...>)
 {
   return string<String{}.chars[Indices]...>{};
 }
@@ -77,7 +77,7 @@ build_string()
 
 template<char... L, char... R>
 constexpr string<L..., R...>
-operator+(const string<L...>, const string<R...>)
+operator+(string<L...>, string<R...>)
 {
   return string<L..., R...>{};
 }
@@ -85,7 +85,7 @@ operator+(const string<L...>, const string<R...>)
 inline namespace detail {
 template<typename String, index_t... Indices>
 constexpr auto
-substr_impl(const String, const index_range<Indices...>)
+substr_impl(String, index_range<Indices...>)
 {
   return string<String{}[Indices]...>{};
 }
@@ -93,8 +93,7 @@ substr_impl(const String, const index_range<Indices...>)
 
 // creates a sub-string from a pair of iterators
 template<typename String, index_t Begin, index_t End>
-constexpr auto
-substr(const iterator<String, Begin>, const iterator<String, End>)
+constexpr auto substr(iterator<String, Begin>, iterator<String, End>)
 {
   if constexpr (Begin == End)
     return string<>{};
@@ -104,8 +103,7 @@ substr(const iterator<String, Begin>, const iterator<String, End>)
 
 // creates a sub-string from a string, position and length
 template<typename String, index_t Pos, index_t Len>
-constexpr auto
-substr(const String, const std::integral_constant<index_t, Pos>, const std::integral_constant<index_t, Len>)
+constexpr auto substr(String, std::integral_constant<index_t, Pos>, std::integral_constant<index_t, Len>)
 {
   return detail::substr_impl(String{}, make_index_range<Pos, (Pos + Len) - 1>());
 }
@@ -113,7 +111,7 @@ substr(const String, const std::integral_constant<index_t, Pos>, const std::inte
 inline namespace detail {
 template<typename Target, typename String, index_t... Indices>
 constexpr auto
-strmatch_impl(const Target, const String, const index_range<Indices...>)
+strmatch_impl(Target, String, index_range<Indices...>)
 {
   constexpr auto match_char = [](index_t index) -> index_t { return Target{}[index] == String{}[index] ? 1 : 0; };
   return std::integral_constant<index_t, (0 + ... + match_char(Indices))>{};
@@ -122,15 +120,13 @@ strmatch_impl(const Target, const String, const index_range<Indices...>)
 
 // returns the amount of characters that each string have in common, from beginning until first non-matching character
 template<typename Target, typename String>
-constexpr auto
-strmatch(const Target, const String)
+constexpr auto strmatch(Target, String)
 {
   return strmatch_impl(Target{}, String{}, make_index_range<0, Target{}.size() - 1>());
 }
 
 template<typename Target, typename String, typename Begin>
-constexpr auto
-find(const Target, const String, const Begin)
+constexpr auto find(Target, String, Begin)
 {
   constexpr Target target;
   constexpr String string;
@@ -143,7 +139,7 @@ find(const Target, const String, const Begin)
 
 template<char Begin, char... Chars>
 constexpr auto
-stoi(const string<Begin, Chars...>)
+stoi(string<Begin, Chars...>)
 {
   if constexpr (Begin == '-') {
     return -(std::integral_constant<int, combine_digits_base10(0, parse_digit(Chars)...)>{});
@@ -156,7 +152,7 @@ stoi(const string<Begin, Chars...>)
 
 template<char Begin, char... Chars>
 constexpr auto
-stol(const string<Begin, Chars...>)
+stol(string<Begin, Chars...>)
 {
   if constexpr (Begin == '-') {
     return -(std::integral_constant<long, combine_digits_base10(0, parse_digit(Chars)...)>{});
@@ -169,7 +165,7 @@ stol(const string<Begin, Chars...>)
 
 template<char Begin, char... Chars>
 constexpr auto
-stoll(const string<Begin, Chars...>)
+stoll(string<Begin, Chars...>)
 {
   if constexpr (Begin == '-') {
     return -(std::integral_constant<long long, combine_digits_base10(0, parse_digit(Chars)...)>{});
@@ -182,7 +178,7 @@ stoll(const string<Begin, Chars...>)
 
 template<char Begin, char... Chars>
 constexpr auto
-stoui(const string<Begin, Chars...>)
+stoui(string<Begin, Chars...>)
 {
   if constexpr (Begin == '-') {
     return -(std::integral_constant<unsigned int, combine_digits_base10(0, parse_digit(Chars)...)>{});
@@ -195,7 +191,7 @@ stoui(const string<Begin, Chars...>)
 
 template<char Begin, char... Chars>
 constexpr auto
-stoul(const string<Begin, Chars...>)
+stoul(string<Begin, Chars...>)
 {
   if constexpr (Begin == '-') {
     return -(std::integral_constant<unsigned long, combine_digits_base10(0, parse_digit(Chars)...)>{});
@@ -208,7 +204,7 @@ stoul(const string<Begin, Chars...>)
 
 template<char Begin, char... Chars>
 constexpr auto
-stoull(const string<Begin, Chars...>)
+stoull(string<Begin, Chars...>)
 {
   if constexpr (Begin == '-') {
     return -(std::integral_constant<unsigned long long, combine_digits_base10(0, parse_digit(Chars)...)>{});
@@ -222,7 +218,7 @@ stoull(const string<Begin, Chars...>)
 
 template<char Begin, char... Chars>
 constexpr float
-stof(const string<Begin, Chars...>)
+stof(string<Begin, Chars...>)
 {
   if constexpr (Begin == '-') {
     constexpr auto work_string = string<Chars...>{};
@@ -250,7 +246,7 @@ stof(const string<Begin, Chars...>)
 
 template<char Begin, char... Chars>
 constexpr double
-stod(const string<Begin, Chars...>)
+stod(string<Begin, Chars...>)
 {
   if constexpr (Begin == '-') {
     constexpr auto work_string = string<Chars...>{};

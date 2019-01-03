@@ -1,5 +1,5 @@
 #include "generators.h"
-#include <cxl/parse.hpp>
+#include <cxl/parsers.hpp>
 #include <cxl/string.hpp>
 
 namespace grammar {
@@ -11,16 +11,14 @@ constexpr auto skip = one_char(STR(" \n\t"));
 
 // returns a parser matching {Target} followed by one-or-more skip, preceeded by zero-or-more skip
 template<typename Target>
-constexpr auto
-token(const Target)
+constexpr auto token(Target)
 {
   return *skip & Target{} & *skip;
 }
 
 // returns a parser matching a list of token( {Target} ) seperated by {Delimiter}
 template<typename Target, typename Delimiter>
-constexpr auto
-token_list(const Target, const Delimiter)
+constexpr auto token_list(Target, Delimiter)
 {
   return token(Target{}) & *(token(Delimiter{}) & token(Target{}));
 }
@@ -33,4 +31,7 @@ constexpr auto quote = one_char(STR("'"));
 constexpr auto string = (quote & (*(!one_char(STR("'")))).generate(generators::quoted_string<>{}) & quote);
 constexpr auto value = floating | integer | string;
 constexpr auto value_list = token_list(value, one_char(STR(",")));
+
+constexpr auto test = sequence(one_string(STR("Hello, ")),
+                               one_string(STR("World!"))); // this breaks MSVC with a completely useless error message
 }

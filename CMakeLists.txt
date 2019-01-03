@@ -5,6 +5,9 @@ project(cxl)
 ## this tool is our code-generator for aggregate sublibrary
 add_executable(code-generators tools/code-generators/aggregate.generator.cpp)
 target_compile_features(code-generators PUBLIC cxx_std_17)
+if (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
+	target_link_libraries(code-generators PUBLIC stdc++fs)
+endif()
 
 ## this command calls code-generators produced executable
 add_custom_command(TARGET code-generators POST_BUILD

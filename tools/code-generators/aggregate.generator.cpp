@@ -16,7 +16,7 @@ write_for_N(int N, File& file)
       values += ", v" + std::to_string(i);
     }
   }
-  file << values << "] = pod;\n  return make_tuple<T&&>(" << values << ");\n}\n";
+  file << values << "] = pod;\n  return detail::make_tuple<T&&>(" << values << ");\n}\n";
 }
 
 int

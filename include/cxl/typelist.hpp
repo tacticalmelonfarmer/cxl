@@ -138,7 +138,7 @@ struct typelist<T0, Ts...>
   }
 
   template<index_t Index>
-  constexpr auto erase(const std::integral_constant<index_t, Index>) const
+  constexpr auto erase(std::integral_constant<index_t, Index>) const
   {
     constexpr auto first_partition = subrange<0, Index - 1>();
     constexpr auto last_partition = subrange<Index + 1, m_end_index>();
@@ -146,7 +146,7 @@ struct typelist<T0, Ts...>
   }
 
   template<index_t Begin, index_t End>
-  constexpr auto erase(const std::integral_constant<index_t, Begin>, const std::integral_constant<index_t, End>) const
+  constexpr auto erase(std::integral_constant<index_t, Begin>, std::integral_constant<index_t, End>) const
   {
     constexpr auto first_partition = subrange<0, Begin - 1>();
     constexpr auto last_partition = subrange<End + 1, m_end_index>();
@@ -154,7 +154,7 @@ struct typelist<T0, Ts...>
   }
 
   template<typename BeginIter, typename EndIter>
-  constexpr auto erase(const BeginIter, const EndIter) const
+  constexpr auto erase(BeginIter, EndIter) const
   {
     constexpr auto first_partition = subrange<0, BeginIter{}.index() - 1>();
     constexpr auto last_partition = subrange<EndIter{}.index() + 1, m_end_index>();
@@ -174,13 +174,13 @@ struct typelist<T0, Ts...>
   }
 
   template<index_t Index>
-  constexpr auto type_emplacer(const std::integral_constant<index_t, Index>) const
+  constexpr auto type_emplacer(std::integral_constant<index_t, Index>) const
   {
     return emplacer<select_t<Index, T0, Ts...>>{};
   }
 
   template<index_t Index>
-  constexpr auto operator[](const std::integral_constant<index_t, Index>) const
+  constexpr auto operator[](std::integral_constant<index_t, Index>) const
   {
     return type_emplacer(std::integral_constant<index_t, Index>{});
   }
