@@ -215,6 +215,39 @@ template <char... Chars>
 before(string<Chars...> &)->before<one_string<string<Chars...>>>;
 
 template <typename TargetParser>
+struct after
+{
+  using parser_tag = tag_t;
+  constexpr after() {}
+  constexpr after(TargetParser) {}
+
+  template <typename InputString>
+  constexpr auto parse(InputString) const
+  {
+    // IMPLEMENT ME PLEASE
+  }
+
+  template <template <typename...> typename Output>
+  constexpr auto generate(Output<>) const
+  {
+    return generator(decltype(*this){}, Output<>{});
+  }
+
+  constexpr auto operator~() const { return optional<after<TargetParser>>{}; }
+  constexpr auto operator+() const { return one_or_more<after<TargetParser>>{}; }
+  constexpr auto operator*() const { return zero_or_more<after<TargetParser>>{}; }
+
+  template <index_t I>
+  constexpr auto operator[](::std::integral_constant<index_t, I>) const
+  {
+    return repeat<after<TargetParser>, I>{};
+  }
+};
+
+template <char... Chars>
+after(string<Chars...> &)->after<one_string<string<Chars...>>>;
+
+template <typename TargetParser>
 struct filter
 {
   using parser_tag = tag_t;
