@@ -22,11 +22,6 @@ struct one_char;
 template <typename TargetParser>
 struct before;
 
-// this parser tries to match the previously matched symbols, against a new parser
-// this can be very usefull for combining parsers in a non-sequential non-disjunctive manner
-template <typename TargetParser>
-struct after; // NOT YET IMPLEMENTED
-
 // this parser matches anything that is not matched by { TargetParser }, essentially a logical NOT
 template <typename TargetParser>
 struct filter;
