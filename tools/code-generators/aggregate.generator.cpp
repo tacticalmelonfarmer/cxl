@@ -35,9 +35,9 @@ int main(int argc, char *argv[])
   }
   else
   {
-    std::ofstream("srcgen_cxl_aggregate.log", std::ios::app)
+    std::ofstream("aggregate.generator.log", std::ios::app)
         << "[error]: wrong number of arguments\n"
-           "[note]: usage: {srcgen_cxl_aggregate} <install-path> <generate-amount>\n";
+           "[note]: usage: {aggregate.generator} <install-path> <generate-amount>\n";
     return 1;
   }
   return 0;
