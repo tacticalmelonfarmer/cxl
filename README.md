@@ -23,7 +23,11 @@ template function `cxl::pow<auto N, auto E>()` is a compile time power/exponent 
   * `N` is the base
   * `E` is the exponent
 
-
+## Aggregate
+**include/cxl/aggregate.hpp** contains the aggregate sublibrary. this sublibrary allows converting arbitrary 
+aggregate class type objects into tuples of their member variables, or converting a sequence of variables into a struct.
+to convert a struct to tuple pass it into `cxl::destructure(...)`, if it is an lvalue the tuple contains references to the members, 
+otherwise it contains copied values. to make a `struct` out of a sequence of variables pass them into `cxl::make_struct(...)`.
 
 ## Integral
 **include/cxl/integral.hpp** contains templated user-defined 
