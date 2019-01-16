@@ -1,4 +1,3 @@
 build/
 .clang-format
 .vscode/
-include/cxl/aggregate.generated.h
