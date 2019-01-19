@@ -28,6 +28,9 @@ add_dependencies(cxl INTERFACE aggregate.generator)
 add_executable(csv ${ExamplesDir}/csv/main.cpp)
 target_link_libraries(csv cxl)
 
+add_executable(integrals ${ExamplesDir}/integrals/main.cpp)
+target_link_libraries(integrals cxl)
+
 add_executable(string_manip ${ExamplesDir}/string_manip/main.cpp)
 target_link_libraries(string_manip cxl)
 
