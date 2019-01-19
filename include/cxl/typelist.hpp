@@ -150,7 +150,7 @@ struct typelist<T0, Ts...>
   template <index_t Index, template <typename...> typename TL, typename... Deduced>
   constexpr auto insert(::std::integral_constant<index_t, Index>, TL<Deduced...>) const
   {
-    constexpr auto first_partition = subrange<0, Index - 1>();
+    constexpr auto first_partition = subrange<0, Index>();
     constexpr auto last_partition = subrange<Index, m_end_index>();
     return first_partition.append(TL<Deduced...>{}).join(last_partition);
   }
@@ -170,7 +170,7 @@ struct typelist<T0, Ts...>
   template <index_t Index>
   constexpr auto erase(::std::integral_constant<index_t, Index>) const
   {
-    constexpr auto first_partition = subrange<0, Index - 1>();
+    constexpr auto first_partition = subrange<0, Index>();
     constexpr auto last_partition = subrange<Index + 1, m_end_index>();
     return first_partition.join(last_partition);
   }
@@ -178,7 +178,7 @@ struct typelist<T0, Ts...>
   template <index_t Begin, index_t End>
   constexpr auto erase(::std::integral_constant<index_t, Begin>, ::std::integral_constant<index_t, End>) const
   {
-    constexpr auto first_partition = subrange<0, Begin - 1>();
+    constexpr auto first_partition = subrange<0, Begin>();
     constexpr auto last_partition = subrange<End + 1, m_end_index>();
     return first_partition.join(last_partition);
   }
@@ -186,7 +186,7 @@ struct typelist<T0, Ts...>
   template <typename BeginIter, typename EndIter>
   constexpr auto erase(BeginIter, EndIter) const
   {
-    constexpr auto first_partition = subrange<0, BeginIter{}.index() - 1>();
+    constexpr auto first_partition = subrange<0, BeginIter{}.index()>();
     constexpr auto last_partition = subrange<EndIter{}.index() + 1, m_end_index>();
     return first_partition.join(last_partition);
   }
@@ -226,15 +226,27 @@ private:
 };
 
 template <typename... Types>
-constexpr bool
+constexpr auto
 is_typelist(typelist<Types...>)
 {
-  return true;
+  return ::std::true_type{};
 }
 
-constexpr bool
+constexpr auto
 is_typelist(...)
 {
-  return false;
+  return ::std::false_type{};
 }
+
+template <typename... Same>
+constexpr auto operator==(typelist<Same...>, typelist<Same...>) { return ::std::true_type{}; }
+
+template <typename... Some, typename... Other>
+constexpr auto operator==(typelist<Some...>, typelist<Other...>) { return ::std::false_type{}; }
+
+template <typename... Same>
+constexpr auto operator!=(typelist<Same...>, typelist<Same...>) { return ::std::false_type{}; }
+
+template <typename... Some, typename... Other>
+constexpr auto operator!=(typelist<Some...>, typelist<Other...>) { return ::std::true_type{}; }
 } // namespace cxl
