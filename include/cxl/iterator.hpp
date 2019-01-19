@@ -9,6 +9,8 @@ namespace cxl
 template <typename T, index_t Index>
 struct iterator
 {
+  using container_type = T;
+
   constexpr auto index() const { return ::std::integral_constant<index_t, Index>{}; }
 
   constexpr auto operator*() const { return T{}[::std::integral_constant<size_t, Index>{}]; }

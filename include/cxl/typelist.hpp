@@ -105,12 +105,12 @@ struct typelist<T0, Ts...>
            (sizeof(head_type) < next_types{}.smallest_size()) ? sizeof(head_type) : next_types{}.smallest_size() > {};
   }
 
-  template <index_t Begin, index_t End, index_t Index, typename... Collector>
-  constexpr auto subrange() const
+  template <index_t Begin, index_t End, index_t Index = 0, typename... Collector>
+  constexpr auto subrange(::std::integral_constant<index_t, Begin>, ::std::integral_constant<index_t, End>) const
   {
     static_assert(Begin >= 0, "invalid Begin index for typelist<...>::subrange");
     static_assert(End <= m_end_index, "invalid End index for typelist<...>::subrange");
-    if constexpr (Index >= Begin && Index <= End)
+    if constexpr (Index >= Begin && Index < End)
     {
       return subrange<Begin, End, Index + 1, Collector..., select_t<Index, T0, Ts...>>();
     }
@@ -118,14 +118,37 @@ struct typelist<T0, Ts...>
     {
       return subrange<Begin, End, Index + 1>();
     }
-    else if constexpr (Index > End)
+    else if constexpr (Index == End)
+    {
+      return typelist<Collector...>{};
+    }
+  }
+
+  template <typename BeginIter, typename EndIter, typename Iter, typename... Collector>
+  constexpr auto subrange(BeginIter, EndIter) const
+  {
+    constexpr auto begin_index = BeginIter{}.index();
+    constexpr auto end_index = EndIter{}.index();
+    static_assert(begin_index >= 0, "invalid Begin index for typelist<...>::subrange");
+    static_assert(end_index <= m_end_index, "invalid End index for typelist<...>::subrange");
+    constexpr auto true_begin = (typename BeginIter::container_type){}.begin().index();
+    constexpr auto index = Iter{}.index();
+    if constexpr (index >= begin_index && index < end_index)
+    {
+      return subrange<BeginIter, EndIter, decltype(++Iter{}), Collector..., select_t<index, T0, Ts...>>();
+    }
+    else if constexpr (index < begin_index)
+    {
+      return subrange<Begin, End, decltype(++Iter{})>();
+    }
+    else if constexpr (index == end_index)
     {
       return typelist<Collector...>{};
     }
   }
 
   template <index_t Index, template <typename...> typename TL, typename... Deduced>
-  constexpr auto insert(TL<Deduced...>) const
+  constexpr auto insert(::std::integral_constant<index_t, Index>, TL<Deduced...>) const
   {
     constexpr auto first_partition = subrange<0, Index - 1>();
     constexpr auto last_partition = subrange<Index, m_end_index>();
