@@ -9,80 +9,45 @@
 namespace cxl
 {
 
-template <char... Chars>
-struct string
-{
-  using value_type = char;
-
-  constexpr operator const char *() const { return &m_data[0]; }
-
-  template <index_t Index>
-  constexpr auto operator[](::std::integral_constant<index_t, Index>) const
-  {
-    return ::std::integral_constant<char, m_data[Index]>{};
-  }
-
-  constexpr auto size() const { return m_size; }
-
-  constexpr char front() const { return *begin(); }
-  constexpr char back() const { return *(--end()); }
-
-  constexpr auto begin() const { return iterator<string<Chars...>, 0>{}; }
-  constexpr auto end() const { return iterator<string<Chars...>, sizeof...(Chars)>{}; }
-
-  constexpr bool operator==(string<Chars...>) const { return true; }
-
-  template <char... OtherChars>
-  constexpr bool operator==(string<OtherChars...>) const
-  {
-    return false;
-  }
-
-private:
-  static constexpr ::std::integral_constant<index_t, sizeof...(Chars)> m_size = {};
-  static constexpr char m_data[sizeof...(Chars) + 1] = {Chars..., '\0'};
-};
-
-inline namespace detail
-{
-template <typename String, index_t... Indices>
-constexpr auto
-build_string_impl(String, index_range<Indices...>)
-{
-  return string<String{}.chars[Indices]...>{};
-}
-} // namespace detail
-
-template <index_t Size, typename LiteralWrapper>
-constexpr auto
-build_string()
-{
-  if constexpr (Size == 0)
-    return string<>{};
-  else
-    return detail::build_string_impl(LiteralWrapper{}, make_index_range<0, Size - 1>());
-}
-
-#define STR(string_literal)                                                  \
-  []() constexpr                                                             \
-  {                                                                          \
-    struct literal_wrapper                                                   \
-    {                                                                        \
-      const char *chars = string_literal;                                    \
-    };                                                                       \
-    return cxl::build_string<sizeof(string_literal) - 1, literal_wrapper>(); \
-  }                                                                          \
-  ()
+#define STR(string_literal)                                                                   \
+  []() constexpr                                                                              \
+  {                                                                                           \
+    struct string                                                                             \
+    {                                                                                         \
+      using value_type = char;                                                                \
+      using cxl::iterator;                                                                    \
+      constexpr operator const char *() const { return m_data; }                              \
+      constexpr auto size() const { return m_size; }                                          \
+      constexpr char front() const { return *begin(); }                                       \
+      constexpr char back() const { return *(--end()); }                                      \
+      constexpr auto begin() const { return iterator<string, 0>{}; }                          \
+      constexpr auto end() const { return iterator<string, sizeof(string_literal)>{}; }       \
+      constexpr bool compare_(const char *a, const char *b) const                             \
+      {                                                                                       \
+        if (*a == '\0' && *b == '\0')                                                         \
+          return true;                                                                        \
+        else if (*a == *b)                                                                    \
+          return compare_(a + 1, b + 1);                                                      \
+        else                                                                                  \
+          return false;                                                                       \
+      }                                                                                       \
+      constexpr bool operator==(const char *cstr) const                                       \
+      {                                                                                       \
+        return compare_(m_data, cstr);                                                        \
+      }                                                                                       \
+      constexpr auto operator+(const char *cstr) const                                        \
+      {                                                                                       \
+      }                                                                                       \
+                                                                                              \
+    private:                                                                                  \
+      static constexpr ::std::integral_constant<index_t, sizeof(string_literal)> m_size = {}; \
+      static constexpr char m_data[] = string_literal;                                        \
+    };                                                                                        \
+  }                                                                                           \
+  ();
 
 #define CHR(char_literal) \
   ::std::integral_constant<char, char_literal> {}
-
-template <char... L, char... R>
-constexpr string<L..., R...>
-operator+(string<L...>, string<R...>)
-{
-  return string<L..., R...>{};
-}
 
 inline namespace detail
 {
