@@ -45,22 +45,22 @@ private:
 
 inline namespace detail
 {
-template <typename String, index_t... Indices>
+template <typename String, size_t... Indices>
 constexpr auto
-build_string_impl(String, index_range<Indices...>)
+build_string_impl(String, std::index_sequence<Indices...>)
 {
   return string<String{}.chars[Indices]...>{};
 }
 } // namespace detail
 
-template <index_t Size, typename LiteralWrapper>
+template <size_t Size, typename LiteralWrapper>
 constexpr auto
 build_string()
 {
   if constexpr (Size == 0)
     return string<>{};
   else
-    return detail::build_string_impl(LiteralWrapper{}, make_index_range<0, Size - 1>());
+    return detail::build_string_impl(LiteralWrapper{}, std::make_index_sequence<Size>());
 }
 
 #define STR(string_literal)                                                  \
